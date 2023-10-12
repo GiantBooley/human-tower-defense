@@ -92,7 +92,7 @@ class Camera {
 public:
 	float x = 0.f;
 	float y = 0.f;
-	float scale = 5.f;
+	float z = 5.f;
 };
 class Point {
 public:
@@ -108,25 +108,40 @@ float distance2D(Point p1, Point p2) {
 }
 class Level {
 public:
-	Point path[2] = {{0.f, 0.f}, {1.f, 0.f}};
+	Point path[2] = {{0.f, 0.f}, {1.f, 5.f}};
 };
 Keyboard keyboard;
 class GameState {
 public:
-	Entity entities[1] = {{}};
+	vector<Entity> entities = {{}};
 	Camera camera;
 	Level levels[1] = {{}};
 	int activeLevel = 0;
+	float health = 100.f;
 	
 	void tick() {
 		camera.x = 5.f;
-		camera.y = -6.f;
-		camera.scale = 7.f;
-		for (Entity entity : entities) {
-			Point targetPoint = levels[activeLevel].path[entity.targetPoint];
-			float distanceToTargetPoint = distance2D((Point){entity.x, entity.z}, targetPoint);
-			entity.x += (targetPoint.x - entity.x) / distanceToTargetPoint * 0.1f;
-			entity.z += (targetPoint.y - entity.z) / distanceToTargetPoint * 0.1f;
+		camera.y = 6.f;
+		camera.z = 8.f;
+		if (keyboard.w) {
+			entities.push_back({});
+		}
+		for (int i = entities.size() - 1; i >= 0; i--) {
+			bool die = false;
+			Point targetPoint = levels[activeLevel].path[entities[i].targetPoint];
+			float distanceToTargetPoint = distance2D((Point){entities[i].z, entities[i].x}, targetPoint);
+			entities[i].x += (targetPoint.y - entities[i].x) / distanceToTargetPoint * 0.1f;
+			entities[i].z += (targetPoint.x - entities[i].z) / distanceToTargetPoint * 0.1f;
+			if (distanceToTargetPoint < 0.1f) {
+				entities[i].targetPoint++;
+				if (entities[i].targetPoint >= sizeof(levels[activeLevel].path)/sizeof(levels[activeLevel].path[0])) {
+					health -= 1.f;
+					die = true;
+				}
+			}
+			if (die) {
+				entities.erase(entities.begin() + i);
+			}
 		}
 	}
 };
@@ -134,6 +149,7 @@ class GameStateVertexBuilder {
 public:
 	void buildThem(GameState* game) {
 		clearVertices();
+		// ground
 		for (int x = 0; x < 10; x++) {
 			for (int y = 0; y < 1; y++) {
 				for (int z = 0; z < 10; z++) {
@@ -141,8 +157,13 @@ public:
 				}
 			}
 		}
+		// entities
 		for (Entity entity : game->entities) {
 			addCube(entity.x, entity.y, entity.z, entity.width, entity.height, entity.depth, 0.f, 1.f);
+		}
+		// point path
+		for (Point point : game->levels[game->activeLevel].path) {
+			addCube(point.y, 1.1f, point.x, 0.1f, 0.1f, 0.1f, 0.f, 0.f);
 		}
 	}
 private:
@@ -337,9 +358,9 @@ int main(void) {
 		glBindTexture(GL_TEXTURE_2D, texture);
 
 		mat4x4_identity(m);
-		mat4x4_translate(m, -game.camera.x, -game.camera.y, -game.camera.scale);
+		mat4x4_translate(m, -game.camera.x, -game.camera.y, -game.camera.z);
 		mat4x4_rotate_X(m, m, 1.3f);
-		//mat4x4_rotate_Y(m, m, (float)glfwGetTime());
+		mat4x4_rotate_Y(m, m, 1.57f);
 		//mat4x4_rotate_Z(m, m, (float)glfwGetTime());
 		//mat4x4_ortho(p, -ratio, ratio, -1.f, 1.f, 1.f, -1.f);
 		mat4x4_perspective(p, 1.57f, ratio, 0.1f, 200.f);
