@@ -12,6 +12,10 @@
 #include <vector>
 
 using namespace std;
+
+
+GLFWwindow* window;
+
 struct Vertex {
 	float x, y, z;
 	float u, v;
@@ -43,35 +47,17 @@ static const char* fragment_shader_text =
 "	vec4 color = texture2D(texture1, texCoord);\n"
 "	gl_FragColor = color;\n"
 "}";
-/*void getShaderText() {
-	string line,text;
-	ifstream vshFile("vertex.vsh");
-	if (vshFile.is_open()) {
-		while(getline(vshFile, line)) {
-			text += line + "\n";
-		}
-		vertex_shader_text = text; 
-		cout << "successfully loaded vish file" << endl;
-	} else {
-		cout << "EROEROREOROEROROOREORORR: vertex shader file not found" << endl;
-	};
-	vshFile.close();
-	
-	text = "";
-	ifstream fshFile("fragment.fsh");
-	if (fshFile.is_open()) {
-		while(getline(fshFile, line)) {
-			text += line + "\n";
-		}
-		fragment_shader_text = text;
-		cout << "successfully loaded fish file" << endl;
-	} else {
-		cout << "EREEREREROOERO: fish shader file not found" << endl;
-	};
-	fshFile.close();
-}*/
 
-class Keyboard {
+class Vec2 {
+public:
+	float x = 0.f;
+	float y = 0.f;
+	Vec2(float asdx, float asdy) {
+		x = asdx;
+		y = asdy;
+	}
+};
+class Controls {
 	public:
 	   bool w = false;
 	   bool a = false;
@@ -82,6 +68,9 @@ class Keyboard {
 	   bool right = false;
 	   bool up = false;
 	   bool down = false;
+	   bool p = false;
+	   Vec2 mouse{0.f, 0.f};
+	   Vec2 worldMouse{0.f, 0.f};
 };
 class Vec3 {
 public:
@@ -101,11 +90,9 @@ public:
 	float getMagnitude() {
 		return sqrt(x*x+y*y+z*z);
 	}
-	void normalise() {
+	Vec3 normalise(float strength) {
 		float magnitude = getMagnitude();
-		x /= magnitude;
-		y /= magnitude;
-		z /= magnitude;
+		return {x / magnitude * strength, y / magnitude * strength, z / magnitude * strength};
 	}
 };
 Vec3 vec3Add(Vec3 a, Vec3 b) {
@@ -114,21 +101,18 @@ Vec3 vec3Add(Vec3 a, Vec3 b) {
 Vec3 vec3Add(Vec3 a, float b) {
 	return {a.x + b, a.y + b, a.z + b};
 }
+Vec3 vec3Subtract(Vec3 a, Vec3 b) {
+	return {a.x - b.x, a.y - b.y, a.z - b.z};
+}
+Vec3 vec3Subtract(Vec3 a, float b) {
+	return {a.x - b, a.y - b, a.z - b};
+}
 Vec3 vec3Mul(Vec3 a, Vec3 b) {
 	return {a.x * b.x, a.y * b.y, a.z * b.z};
 }
 Vec3 vec3Mul(Vec3 a, float b) {
 	return {a.x * b, a.y * b, a.z * b};
 }
-class Vec2 {
-public:
-	float x = 0.f;
-	float y = 0.f;
-	Vec2(float asdx, float asdy) {
-		x = asdx;
-		y = asdy;
-	}
-};
 class Entity {
 public:
 	Vec3 pos{0.f, 0.f, 0.f};
@@ -152,48 +136,105 @@ class Level {
 public:
 	Vec3 path[4] = {{2.f, 1.f, 0.f}, {5.f, 1.f, 2.f}, {2.f, 1.f, 8.f}, {3.f, 1.f, 10.f}};
 };
-Keyboard keyboard;
+class Person {
+	public:
+	Vec3 pos{0.f, 0.f, 0.f};
+	Vec3 size{1.f, 1.f, 1.f};
+	int shootDelay = 0;
+	Person(Vec3 asdpos) {
+		pos = asdpos;
+	}
+};
+class Projectile {
+	public:
+	Vec3 pos{0.f, 0.f, 0.f};
+	Vec3 velocity{0.f, 0.f, 0.f};
+	Vec3 size{0.3f, 0.3f, 0.3f};
+	float age = 0.f;
+	Projectile(Vec3 asdpos, Vec3 asdvelocity) {
+		pos = asdpos;
+		velocity = asdvelocity;
+	}
+};
+Controls controls;
 float roundToPlace(float x, float place) {
 	return round(x / place) * place;
 }
 class GameState {
 public:
 	vector<Entity> entities = {};
+	vector<Entity> entitiesToSpawn = {};
+	vector<Person> people = {};
+	vector<Projectile> projectiles = {};
 	Camera camera;
 	Level levels[1] = {{}};
 	int activeLevel = 0;
 	float health = 100.f;
+	int entitySpawnDelay = 5;
+	Person placingPerson{{2.f, 1.f, 2.f}};
+	bool isPlacingPerson = false;
 	
-	void tick() {
-		if (keyboard.w) {
-			camera.pos.z -= 0.1f;
-		}
-		if (keyboard.a) {
-			camera.pos.x -= 0.1f;
-		}
-		if (keyboard.s) {
-			camera.pos.z += 0.1f;
-		}
-		if (keyboard.d) {
-			camera.pos.x += 0.1f;
-		}
-		if (keyboard.up) {
-			camera.rotation.x += 0.01f;
-		}
-		if (keyboard.down) {
-			camera.rotation.x -= 0.01f;
-		}
-		if (keyboard.left) {
-			camera.rotation.y -= 0.01f;
-		}
-		if (keyboard.right) {
-			camera.rotation.y += 0.01f;
-		}
-		if (keyboard.space) {
+	void tick(int width, int height) {
+		if (controls.w) camera.pos.z -= 0.1f;
+		if (controls.a) camera.pos.x -= 0.1f;
+		if (controls.s) camera.pos.z += 0.1f;
+		if (controls.d) camera.pos.x += 0.1f;
+		if (controls.up) camera.rotation.x += 0.01f;
+		if (controls.down) camera.rotation.x -= 0.01f;
+		if (controls.left) camera.rotation.y -= 0.01f;
+		if (controls.right) camera.rotation.y += 0.01f;
+		controls.worldMouse.x = controls.mouse.x * 10.f / (float)width;
+		controls.worldMouse.y = 10.f - controls.mouse.y * 10.f / (float)height;
+
+		if (entitySpawnDelay <= 0) {
 			spawnEntity();
+			entitySpawnDelay = 2;
+		}
+		entitySpawnDelay--;
+		if (controls.space) {
+			isPlacingPerson = true;
+		}
+		if (isPlacingPerson) {
+			placingPerson.pos.x = controls.worldMouse.y;
+			placingPerson.pos.z = controls.worldMouse.x;
+			if (controls.p) {
+				people.push_back(placingPerson);
+				isPlacingPerson = false;
+			}
+		}
+
+		for (int i = 0; i < people.size(); i++) {
+			if (people[i].shootDelay <= 0) {
+				people[i].shootDelay = 50;
+				spawnProjectile(people[i].pos.x, people[i].pos.z, vec3Subtract(entities[0].pos, people[i].pos).normalise(0.4f));
+			} else {
+				people[i].shootDelay--;
+			}
+		}
+		for (int i = projectiles.size() - 1; i >= 0; i--) {
+			projectiles[i].pos = vec3Add(projectiles[i].pos, projectiles[i].velocity);
+			projectiles[i].age++;
+			if (projectiles[i].age > 300) {
+				projectiles.erase(projectiles.begin() + i);
+				continue;
+			}
+			for (int j = 0; j < entities.size(); j++) {
+				if (
+					projectiles[i].pos.x - projectiles[i].size.x / 2.f < entities[j].pos.x + entities[j].size.x / 2.f &&
+					projectiles[i].pos.x + projectiles[i].size.x / 2.f > entities[j].pos.x - entities[j].size.x / 2.f &&
+					projectiles[i].pos.y                               < entities[j].pos.y + entities[j].size.y       &&
+					projectiles[i].pos.y + projectiles[i].size.y       > entities[j].pos.y                            &&
+					projectiles[i].pos.z - projectiles[i].size.z / 2.f < entities[j].pos.z + entities[j].size.z / 2.f &&
+					projectiles[i].pos.z + projectiles[i].size.z / 2.f > entities[j].pos.z - entities[j].size.z / 2.f
+				) {
+					projectiles.erase(projectiles.begin() + i);
+					entities[j].health -= 1.f;
+					break;
+				};
+			}
 		}
 		for (int i = entities.size() - 1; i >= 0; i--) {
-			bool die = false;
+			bool die = entities[i].health <= 0.f;
 			Vec3 targetPoint = levels[activeLevel].path[entities[i].targetPoint];
 			float distanceToTargetPoint = distance3D(entities[i].pos, targetPoint);
 			if (distanceToTargetPoint < 0.03f) {
@@ -218,6 +259,12 @@ public:
 	}
 	void spawnEntity() {
 		entities.push_back({levels[activeLevel].path[0]});
+	}
+	void placePerson(float x, float z) {
+		people.push_back({{x, 1.f, z}});
+	}
+	void spawnProjectile(float x, float z, Vec3 vel) {
+		projectiles.push_back({{x, 2.f, z}, vel});
 	}
 };
 Vec2 getCharacterCoords(char c) {
@@ -327,7 +374,7 @@ Vec2 getCharacterCoords(char c) {
 };
 class GameStateVertexBuilder {
 public:
-	void buildThem(GameState* game) {
+	void buildThem(GameState* game, int width, int height) {
 		clearVertices();
 		// ground
 		for (int x = 0; x < 10; x++) {
@@ -339,11 +386,23 @@ public:
 		for (Entity entity : game->entities) {
 			addCube(entity.pos.x - entity.size.x / 2.f, entity.pos.y, entity.pos.z - entity.size.z / 2.f, entity.size.x, entity.size.y, entity.size.z, 0.f, 1.f);
 		}
+		//people
+		for (Person person : game->people) {
+			addCube(person.pos.x - person.size.x / 2.f, person.pos.y, person.pos.z - person.size.z / 2.f, person.size.x, person.size.y, person.size.z, 0.f, 2.f);
+		}
+		if (game->isPlacingPerson) {
+			addCube(game->placingPerson.pos.x - game->placingPerson.size.x / 2.f, game->placingPerson.pos.y, game->placingPerson.pos.z - game->placingPerson.size.z / 2.f, game->placingPerson.size.x, game->placingPerson.size.y, game->placingPerson.size.z, 0.f, 2.f);
+		}
+		//projectiles
+		for (Projectile projectile : game->projectiles) {
+			addPlane(projectile.pos.x - projectile.size.x / 2.f, projectile.pos.y, projectile.pos.z - projectile.size.z / 2.f, projectile.size.x, projectile.size.z, 0.f, 6.f);
+		}
 		// point path
 		for (Vec3 point : game->levels[game->activeLevel].path) {
 			addCube(point.x, point.y, point.z, 0.1f, 0.2f, 0.2f, 0.f, 1.f);
 		}
 		addText("health: " + to_string((int)game->health), -0.9f, 0.8f, 0.1f, 0.8f);
+		addText("x: " + to_string((int)controls.mouse.x) + ", y: " + to_string((int)controls.mouse.y), -0.9f, 0.7f, 0.1f, 0.8f);
 	}
 private:
 	void clearVertices() {
@@ -419,10 +478,6 @@ private:
 };
 GameState game;
 GameStateVertexBuilder vBuilder;
-
-static void error_callback(int error, const char* description) {
-	fprintf(stderr, "Error: %s\n", description);
-}
 float randFloat() {
 	return static_cast<float> (rand()) / static_cast<float> (RAND_MAX);
 }
@@ -431,32 +486,47 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 		if (key == GLFW_KEY_ESCAPE) {
 			glfwSetWindowShouldClose(window, GLFW_TRUE);
 		}
-		else if (key == GLFW_KEY_W) keyboard.w = true;
-		else if (key == GLFW_KEY_A) keyboard.a = true;
-		else if (key == GLFW_KEY_S) keyboard.s = true;
-		else if (key == GLFW_KEY_D) keyboard.d = true;
-		else if (key == GLFW_KEY_SPACE) keyboard.space = true;
-		else if (key == GLFW_KEY_LEFT) keyboard.left = true;
-		else if (key == GLFW_KEY_RIGHT) keyboard.right = true;
-		else if (key == GLFW_KEY_UP) keyboard.up = true;
-		else if (key == GLFW_KEY_DOWN) keyboard.down = true;
+		else if (key == GLFW_KEY_W) controls.w = true;
+		else if (key == GLFW_KEY_A) controls.a = true;
+		else if (key == GLFW_KEY_S) controls.s = true;
+		else if (key == GLFW_KEY_D) controls.d = true;
+		else if (key == GLFW_KEY_SPACE) controls.space = true;
+		else if (key == GLFW_KEY_LEFT) controls.left = true;
+		else if (key == GLFW_KEY_RIGHT) controls.right = true;
+		else if (key == GLFW_KEY_UP) controls.up = true;
+		else if (key == GLFW_KEY_DOWN) controls.down = true;
+		else if (key == GLFW_KEY_P) controls.p = true;
 	}
 	else if (action == GLFW_RELEASE) {
-		if (key == GLFW_KEY_W) keyboard.w = false;
-		else if (key == GLFW_KEY_A) keyboard.a = false;
-		else if (key == GLFW_KEY_S) keyboard.s = false;
-		else if (key == GLFW_KEY_D) keyboard.d = false;
-		else if (key == GLFW_KEY_SPACE) keyboard.space = false;
-		else if (key == GLFW_KEY_LEFT) keyboard.left = false;
-		else if (key == GLFW_KEY_RIGHT) keyboard.right = false;
-		else if (key == GLFW_KEY_UP) keyboard.up = false;
-		else if (key == GLFW_KEY_DOWN) keyboard.down = false;
+		if (key == GLFW_KEY_W) controls.w = false;
+		else if (key == GLFW_KEY_A) controls.a = false;
+		else if (key == GLFW_KEY_S) controls.s = false;
+		else if (key == GLFW_KEY_D) controls.d = false;
+		else if (key == GLFW_KEY_SPACE) controls.space = false;
+		else if (key == GLFW_KEY_LEFT) controls.left = false;
+		else if (key == GLFW_KEY_RIGHT) controls.right = false;
+		else if (key == GLFW_KEY_UP) controls.up = false;
+		else if (key == GLFW_KEY_DOWN) controls.down = false;
+		else if (key == GLFW_KEY_P) controls.p = false;
 	};
+}
+static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
+    if(button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
+       double xpos, ypos;
+       //getting cursor position
+       glfwGetCursorPos(window, &xpos, &ypos);
+    }
+}
+static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
+	controls.mouse = {(float)xpos, (float)ypos};
+}
+
+static void error_callback(int error, const char* description) {
+	fprintf(stderr, "ERROR: %s\n", description);
 }
 
 int main(void) {
 	//getShaderText();
-	GLFWwindow* window;
 	GLuint vertex_buffer, vertex_shader, fragment_shader, program;
 	GLint mvp_location, vpos_location, vtexcoord_location, vspace_location, texture1_location;
 
@@ -482,6 +552,8 @@ int main(void) {
 	stbi_image_free(images[0].pixels);
 
 	glfwSetKeyCallback(window, key_callback);
+	glfwSetMouseButtonCallback(window, mouse_button_callback);
+	glfwSetCursorPosCallback(window, cursor_position_callback);
 
 	glfwMakeContextCurrent(window);
 	gladLoadGL();
@@ -501,23 +573,37 @@ int main(void) {
 	glShaderSource(vertex_shader, 1, &vertex_shader_text, NULL);
 	glCompileShader(vertex_shader);
 	
-	GLint success = GL_FALSE;//error handeling    
-	char infoLog[512];
+	GLint vertexSuccess = GL_FALSE;//error handeling    
+	char vertexInfoLog[512];
 
-	glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &success);
-	if (!success){
-		glGetShaderInfoLog(vertex_shader, 512, NULL, infoLog);
-		cerr << "Shader compilation error\n" << infoLog << endl;
+	glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &vertexSuccess);
+	if (!vertexSuccess){
+		glGetShaderInfoLog(vertex_shader, 512, NULL, vertexInfoLog);
+		cerr << "ERROR: vertex Shader compilation error: " << vertexInfoLog << endl;
 
 		glDeleteShader(vertex_shader);
 		return -1;
 	} else {
-		cout << "vertex shader sucucues" << endl;
+		cout << "INFO: successfuly loaded vert exshader" << endl;
 	}
 
 	fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
 	glShaderSource(fragment_shader, 1, &fragment_shader_text, NULL);
 	glCompileShader(fragment_shader);
+	
+	GLint fragmentSuccess = GL_FALSE;//error handeling    
+	char fragmentInfoLog[512];
+
+	glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &fragmentSuccess);
+	if (!fragmentSuccess){
+		glGetShaderInfoLog(fragment_shader, 512, NULL, fragmentInfoLog);
+		cerr << "ERROR: fragment Shader compilation error: " << fragmentInfoLog << endl;
+
+		glDeleteShader(vertex_shader);
+		return -1;
+	} else {
+		cout << "INFO: successfuly loaded  fragmentshader" << endl;
+	}
 
 	program = glCreateProgram();
 	glAttachShader(program, vertex_shader);
@@ -556,9 +642,9 @@ int main(void) {
 	if (bytes) {
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, widthImg, heightImg, 0, GL_RGBA, GL_UNSIGNED_BYTE, bytes);
 		glGenerateMipmap(GL_TEXTURE_2D);
-		cout << "successfully loaded texture atlas" << endl;
+		cout << "INFO: successfully loaded texture atlas" << endl;
 	} else {
-		cout << "failed to load texture atlas. make sure resources/atlas.png exists" << endl;
+		cerr << "ERROR: failed to load texture atlas. make sure resources/atlas.png exists" << endl;
 	};
 
 
@@ -570,18 +656,18 @@ int main(void) {
 
 
 	while (!glfwWindowShouldClose(window)) {
-		game.tick();
-		vBuilder.buildThem(&game);
 		float ratio;
 		int width, height;
 		mat4x4 m, p, mvp;
 
+		glfwGetFramebufferSize(window, &width, &height);
+		ratio = width / (float)height;
+
+		game.tick(width, height);
+		vBuilder.buildThem(&game, width, height);
 		glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vertices[0]), &vertices[0], GL_STATIC_DRAW);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementbuffer);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
-
-		glfwGetFramebufferSize(window, &width, &height);
-		ratio = width / (float)height;
 		
 		glViewport(0, 0, width, height);
 		glClearColor(1.f, 1.f, 1.f, 1.f);
