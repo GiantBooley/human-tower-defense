@@ -24,6 +24,10 @@ struct Vertex {
 vector<Vertex> vertices = {};
 vector<unsigned int> indices = {};
 
+float randFloat() {
+	return static_cast<float> (rand()) / static_cast<float> (RAND_MAX);
+}
+
 static const char* vertex_shader_text = 
 "#version 110\n"
 "uniform mat4 MVP;\n"
@@ -69,6 +73,7 @@ class Controls {
 	   bool up = false;
 	   bool down = false;
 	   bool p = false;
+	   bool mouseDown = false;
 	   Vec2 mouse{0.f, 0.f};
 	   Vec2 worldMouse{0.f, 0.f};
 };
@@ -113,36 +118,70 @@ Vec3 vec3Mul(Vec3 a, Vec3 b) {
 Vec3 vec3Mul(Vec3 a, float b) {
 	return {a.x * b, a.y * b, a.z * b};
 }
+#define ENTITY_NORMAL 0
+#define ENTITY_FAST 1
+#define ENTITY_MONSTER 2
 class Entity {
 public:
+	int type;
 	Vec3 pos{0.f, 0.f, 0.f};
 	Vec3 size{0.5f, 1.5f, 0.5f};
 	int targetPoint = 0;
 	float health = 1.f;
-	Entity(Vec3 position) {
+	float speed = 0.03f;
+	float u;
+	float reward;
+	float damage;
+	Entity(int tyipe, Vec3 position) {
+		type = tyipe;
 		pos = position;
+		switch (type) {
+		case ENTITY_NORMAL:
+			speed = 0.03f;
+			u = 0.f;
+			reward = 1.f;
+			damage = 1.f;
+			break;
+		case ENTITY_FAST:
+			speed = 0.1f;
+			u = 1.f;
+			reward = 3.f;
+			damage = 2.f;
+			break;
+		case ENTITY_MONSTER:
+			speed = 1.f;
+			u = 2.f;
+			reward = 3123.f;
+			damage = 2213.f;
+		}
 	}
 };
 class Camera {
 public:
-	Vec3 pos{5.f, 6.f, 8.f};
+	Vec3 pos{5.f, 5.f, 6.f};
 	float fov = 1.57f;
-	Vec3 rotation{1.3f, 1.57f, 0.f};
+	Vec3 rotation{1.57f, 1.57f, 0.f};
 };
 float distance3D(Vec3 p1, Vec3 p2) {
 	return sqrt(pow(p2.x - p1.x, 2.f) + pow(p2.y - p1.y, 2.f) + pow(p2.z - p1.z, 2.f));
 }
 class Level {
 public:
-	Vec3 path[4] = {{2.f, 1.f, 0.f}, {5.f, 1.f, 2.f}, {2.f, 1.f, 8.f}, {3.f, 1.f, 10.f}};
+	vector<Vec3> path = {{2.f, 1.f, 0.f}, {5.f, 1.f, 2.f}, {2.f, 1.f, 8.f}, {4.f, 1.f, 8.f}, {4.f, 1.f, 3.f}, {1.f, 1.f, 3.f}, {1.f, 1.f, 9.f}, {6.f, 1.f, 9.f}, {6.f, 1.f, 3.f}, {9.f, 1.f, 3.f}, {9.f, 1.f, 10.f}};
 };
+#define PERSON_ARCHER 0
 class Person {
 	public:
 	Vec3 pos{0.f, 0.f, 0.f};
 	Vec3 size{1.f, 1.f, 1.f};
 	int shootDelay = 0;
-	Person(Vec3 asdpos) {
+	float price;
+	Person(int type, Vec3 asdpos) {
 		pos = asdpos;
+		switch (type) {
+		case 0:
+			price = 100.f;
+		}
 	}
 };
 class Projectile {
@@ -160,10 +199,16 @@ Controls controls;
 float roundToPlace(float x, float place) {
 	return round(x / place) * place;
 }
+class Wave {
+	public:
+		vector<int> entities;
+		Wave(vector<int> them) {
+			entities = them;
+		}
+};
 class GameState {
 public:
 	vector<Entity> entities = {};
-	vector<Entity> entitiesToSpawn = {};
 	vector<Person> people = {};
 	vector<Projectile> projectiles = {};
 	Camera camera;
@@ -171,8 +216,19 @@ public:
 	int activeLevel = 0;
 	float health = 100.f;
 	int entitySpawnDelay = 5;
-	Person placingPerson{{2.f, 1.f, 2.f}};
+	Person placingPerson{PERSON_ARCHER, {2.f, 1.f, 2.f}};
 	bool isPlacingPerson = false;
+	float money = 4010.f;
+	Wave waveCurrentlySpawning{{}};
+	Wave waves[6] = {
+		{{ENTITY_NORMAL, ENTITY_NORMAL, ENTITY_NORMAL, ENTITY_NORMAL, ENTITY_NORMAL, ENTITY_NORMAL, ENTITY_NORMAL, ENTITY_NORMAL}},
+		{{ENTITY_NORMAL, ENTITY_NORMAL, ENTITY_NORMAL, ENTITY_NORMAL, ENTITY_NORMAL, ENTITY_NORMAL, ENTITY_NORMAL, ENTITY_NORMAL, ENTITY_NORMAL, ENTITY_NORMAL, ENTITY_NORMAL, ENTITY_NORMAL, ENTITY_NORMAL, ENTITY_NORMAL}},
+		{{ENTITY_NORMAL, ENTITY_NORMAL, ENTITY_NORMAL, ENTITY_FAST, ENTITY_NORMAL, ENTITY_FAST, ENTITY_NORMAL, ENTITY_FAST}},
+		{{ENTITY_NORMAL, ENTITY_NORMAL, ENTITY_NORMAL, ENTITY_FAST, ENTITY_NORMAL, ENTITY_FAST, ENTITY_NORMAL, ENTITY_FAST, ENTITY_MONSTER}},
+		{{ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_FAST, ENTITY_NORMAL, ENTITY_FAST, ENTITY_MONSTER}},
+		{{ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER}}
+	};
+	int waveNumber = 0;
 	
 	void tick(int width, int height) {
 		if (controls.w) camera.pos.z -= 0.1f;
@@ -186,27 +242,27 @@ public:
 		controls.worldMouse.x = controls.mouse.x * 10.f / (float)width;
 		controls.worldMouse.y = 10.f - controls.mouse.y * 10.f / (float)height;
 
-		if (entitySpawnDelay <= 0) {
-			spawnEntity();
-			entitySpawnDelay = 2;
-		}
-		entitySpawnDelay--;
+		if (entitySpawnDelay <= 0 && waveCurrentlySpawning.entities.size() > 0) {
+			entities.push_back({waveCurrentlySpawning.entities[0], levels[activeLevel].path[0]});
+			waveCurrentlySpawning.entities.erase(waveCurrentlySpawning.entities.begin());
+			entitySpawnDelay = 20;
+		} else {
+			entitySpawnDelay--;
+		};
 		if (controls.space) {
 			isPlacingPerson = true;
 		}
 		if (isPlacingPerson) {
 			placingPerson.pos.x = controls.worldMouse.y;
 			placingPerson.pos.z = controls.worldMouse.x;
-			if (controls.p) {
-				people.push_back(placingPerson);
-				isPlacingPerson = false;
-			}
 		}
 
 		for (int i = 0; i < people.size(); i++) {
 			if (people[i].shootDelay <= 0) {
 				people[i].shootDelay = 50;
-				spawnProjectile(people[i].pos.x, people[i].pos.z, vec3Subtract(entities[0].pos, people[i].pos).normalise(0.4f));
+				if (entities.size() > 0) {
+					spawnProjectile(people[i].pos.x, people[i].pos.z, vec3Subtract(entities[0].pos, people[i].pos).normalise(0.4f));
+				}
 			} else {
 				people[i].shootDelay--;
 			}
@@ -229,6 +285,9 @@ public:
 				) {
 					projectiles.erase(projectiles.begin() + i);
 					entities[j].health -= 1.f;
+					if (entities[j].health <= 0.f) {
+						money += entities[j].reward;
+					};
 					break;
 				};
 			}
@@ -237,18 +296,18 @@ public:
 			bool die = entities[i].health <= 0.f;
 			Vec3 targetPoint = levels[activeLevel].path[entities[i].targetPoint];
 			float distanceToTargetPoint = distance3D(entities[i].pos, targetPoint);
-			if (distanceToTargetPoint < 0.03f) {
+			if (distanceToTargetPoint < entities[i].speed) {
 				entities[i].targetPoint++;
-				if (entities[i].targetPoint >= sizeof(levels[activeLevel].path)/sizeof(levels[activeLevel].path[0])) {
-					health -= 1.f;
+				if (entities[i].targetPoint >= levels[activeLevel].path.size()) {
+					health -= entities[i].damage;
 					die = true;
 				}
 				targetPoint = levels[activeLevel].path[entities[i].targetPoint];
 				distanceToTargetPoint = distance3D(entities[i].pos, targetPoint);
 			}
-			entities[i].pos.x += (targetPoint.x - entities[i].pos.x) / distanceToTargetPoint * 0.03f;
-			entities[i].pos.y += (targetPoint.y - entities[i].pos.y) / distanceToTargetPoint * 0.03f;
-			entities[i].pos.z += (targetPoint.z - entities[i].pos.z) / distanceToTargetPoint * 0.03f;
+			entities[i].pos.x += (targetPoint.x - entities[i].pos.x) / distanceToTargetPoint * entities[i].speed;
+			entities[i].pos.y += (targetPoint.y - entities[i].pos.y) / distanceToTargetPoint * entities[i].speed;
+			entities[i].pos.z += (targetPoint.z - entities[i].pos.z) / distanceToTargetPoint * entities[i].speed;
 			if (die) {
 				entities.erase(entities.begin() + i);
 			}
@@ -258,13 +317,17 @@ public:
 		}
 	}
 	void spawnEntity() {
-		entities.push_back({levels[activeLevel].path[0]});
-	}
-	void placePerson(float x, float z) {
-		people.push_back({{x, 1.f, z}});
+		if (randFloat() < 0.5) {
+			entities.push_back({ENTITY_NORMAL, levels[activeLevel].path[0]});
+		} else {
+			entities.push_back({ENTITY_FAST, levels[activeLevel].path[0]});
+		}
 	}
 	void spawnProjectile(float x, float z, Vec3 vel) {
-		projectiles.push_back({{x, 2.f, z}, vel});
+		projectiles.push_back({{x, 2.f, z}, vec3Add(vel, (Vec3){randFloat() * 0.1f - 0.05f, 0.f, randFloat() * 0.1f - 0.05f})});
+	}
+	void spawnWave(Wave wave) {
+		waveCurrentlySpawning = wave;
 	}
 };
 Vec2 getCharacterCoords(char c) {
@@ -379,12 +442,16 @@ public:
 		// ground
 		for (int x = 0; x < 10; x++) {
 			for (int z = 0; z < 10; z++) {
-				addPlane((float)x, 1.f, (float)z, 1.f, 1.f, 1.f, 0.f);
+				addPlane((float)x, 1.f, (float)z, 1.f, 1.f, 0.f, 0.f);
 			}
+		}
+		// point path
+		for (int i = 0; i < game->levels[game->activeLevel].path.size() - 1; i++) {
+			addPath(game->levels[game->activeLevel].path[i], game->levels[game->activeLevel].path[i + 1], 1.f, 0.f, 0.4f);
 		}
 		// entities
 		for (Entity entity : game->entities) {
-			addCube(entity.pos.x - entity.size.x / 2.f, entity.pos.y, entity.pos.z - entity.size.z / 2.f, entity.size.x, entity.size.y, entity.size.z, 0.f, 1.f);
+			addCube(entity.pos.x - entity.size.x / 2.f, entity.pos.y, entity.pos.z - entity.size.z / 2.f, entity.size.x, entity.size.y, entity.size.z, entity.u, 1.f);
 		}
 		//people
 		for (Person person : game->people) {
@@ -395,14 +462,12 @@ public:
 		}
 		//projectiles
 		for (Projectile projectile : game->projectiles) {
-			addPlane(projectile.pos.x - projectile.size.x / 2.f, projectile.pos.y, projectile.pos.z - projectile.size.z / 2.f, projectile.size.x, projectile.size.z, 0.f, 6.f);
+			addPath(projectile.pos, vec3Add(projectile.pos, projectile.velocity), 0.f, 6.f, 0.1f);
 		}
-		// point path
-		for (Vec3 point : game->levels[game->activeLevel].path) {
-			addCube(point.x, point.y, point.z, 0.1f, 0.2f, 0.2f, 0.f, 1.f);
-		}
-		addText("health: " + to_string((int)game->health), -0.9f, 0.8f, 0.1f, 0.8f);
-		addText("x: " + to_string((int)controls.mouse.x) + ", y: " + to_string((int)controls.mouse.y), -0.9f, 0.7f, 0.1f, 0.8f);
+		addText("HEALTH: " + to_string((int)game->health), -0.9f, 0.8f, 0.1f, 0.8f);
+		addText("WAVE " + to_string(game->waveNumber), 0.3f, 0.8f, 0.1f, 0.8f);
+		addText("$" + to_string((int)game->money), -0.9f, 0.6f, 0.1f, 0.8f);
+		addText("(space) archer: $100", -0.9f, -0.9f, -0.9f, 0.8f);
 	}
 private:
 	void clearVertices() {
@@ -475,12 +540,25 @@ private:
 			addCharacter(text.at(i), x + (float)i * w * spacing, y, w*1.5);
 		}
 	}
+	void addPath(Vec3 p1, Vec3 p2, float u, float v, float width) {
+		unsigned int end = vertices.size();
+		float dist = distance3D(p1, p2);
+		float xDiff = (p2.x - p1.x) / dist * width;
+		float zDiff = (p2.z - p1.z) / dist * width;
+		vertices.insert(vertices.end(), {
+			{p1.x - zDiff - xDiff, p1.y + 0.01f, p1.z + xDiff - zDiff, u      , v + 1.f, 1.f},
+			{p1.x + zDiff - xDiff, p1.y + 0.01f, p1.z - xDiff - zDiff, u + 1.f, v + 1.f, 1.f},
+			{p2.x - zDiff + xDiff, p2.y + 0.01f, p2.z + xDiff + zDiff, u      , v      , 1.f},
+			{p2.x + zDiff + xDiff, p2.y + 0.01f, p2.z - xDiff + zDiff, u + 1.f, v      , 1.f}
+		});
+		indices.insert(indices.end(), {
+			0U+end, 1U+end, 2U+end,
+			1U+end, 3U+end, 2U+end
+		});
+	}
 };
 GameState game;
 GameStateVertexBuilder vBuilder;
-float randFloat() {
-	return static_cast<float> (rand()) / static_cast<float> (RAND_MAX);
-}
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
 	if (action == GLFW_PRESS) {
 		if (key == GLFW_KEY_ESCAPE) {
@@ -496,6 +574,10 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 		else if (key == GLFW_KEY_UP) controls.up = true;
 		else if (key == GLFW_KEY_DOWN) controls.down = true;
 		else if (key == GLFW_KEY_P) controls.p = true;
+		else if (key == GLFW_KEY_Z && game.entities.size() == 0 && game.waveNumber < sizeof(game.waves) / sizeof(game.waves[0])) {
+			game.spawnWave(game.waves[game.waveNumber]);
+			game.waveNumber++;
+		};
 	}
 	else if (action == GLFW_RELEASE) {
 		if (key == GLFW_KEY_W) controls.w = false;
@@ -512,9 +594,23 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 }
 static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
     if(button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
+    	double xpos, ypos;
+    	//getting cursor position
+    	glfwGetCursorPos(window, &xpos, &ypos);
+
+		if (game.isPlacingPerson && game.money >= game.placingPerson.price) {
+			game.people.push_back(game.placingPerson);
+			game.isPlacingPerson = false;
+			game.money -= game.placingPerson.price;
+		};
+
+		controls.mouseDown = true;
+    }
+    if(button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
        double xpos, ypos;
        //getting cursor position
        glfwGetCursorPos(window, &xpos, &ypos);
+	   controls.mouseDown = false;
     }
 }
 static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
@@ -670,7 +766,7 @@ int main(void) {
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
 		
 		glViewport(0, 0, width, height);
-		glClearColor(1.f, 1.f, 1.f, 1.f);
+		glClearColor(0.5f, 0.5f, 0.7f, 1.f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glBindTexture(GL_TEXTURE_2D, texture);
 
