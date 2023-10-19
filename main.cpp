@@ -10,6 +10,7 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <string>
 
 using namespace std;
 
@@ -76,6 +77,8 @@ class Controls {
 	   bool mouseDown = false;
 	   Vec2 mouse{0.f, 0.f};
 	   Vec2 worldMouse{0.f, 0.f};
+	   Vec2 clipMouse{0.f, 0.f};
+	   Vec2 previousClipMouse{0.f, 0.f};
 };
 class Vec3 {
 public:
@@ -121,6 +124,8 @@ Vec3 vec3Mul(Vec3 a, float b) {
 #define ENTITY_NORMAL 0
 #define ENTITY_FAST 1
 #define ENTITY_MONSTER 2
+#define ENTITY_ADMIN 3
+#define ENTITY_IRON_MAIDEN 4
 class Entity {
 public:
 	int type;
@@ -145,14 +150,29 @@ public:
 		case ENTITY_FAST:
 			speed = 0.1f;
 			u = 1.f;
-			reward = 3.f;
+			reward = 5.f;
 			damage = 2.f;
 			break;
 		case ENTITY_MONSTER:
-			speed = 1.f;
+			speed = 0.5f;
 			u = 2.f;
-			reward = 3123.f;
+			reward = 20.f;
+			damage = 15.f;
+			break;
+		case ENTITY_ADMIN:
+			speed = 3.f;
+			u = 3.f;
+			health = 5.f;
+			reward = 312335.f;
 			damage = 2213.f;
+			break;
+		case ENTITY_IRON_MAIDEN:
+			speed = 0.01f;
+			u = 4.f;
+			health = 500.f;
+			reward = 150.f;
+			damage = 25.f;
+			break;
 		}
 	}
 };
@@ -170,17 +190,29 @@ public:
 	vector<Vec3> path = {{2.f, 1.f, 0.f}, {5.f, 1.f, 2.f}, {2.f, 1.f, 8.f}, {4.f, 1.f, 8.f}, {4.f, 1.f, 3.f}, {1.f, 1.f, 3.f}, {1.f, 1.f, 9.f}, {6.f, 1.f, 9.f}, {6.f, 1.f, 3.f}, {9.f, 1.f, 3.f}, {9.f, 1.f, 10.f}};
 };
 #define PERSON_ARCHER 0
+#define PERSON_CANNON 1
+
+#define PROJECTILE_ARROW 0
+#define PROJECTILE_CANNONBALL 1
 class Person {
 	public:
 	Vec3 pos{0.f, 0.f, 0.f};
 	Vec3 size{1.f, 1.f, 1.f};
-	int shootDelay = 0;
+	int type;
+	int projectileType;
+	float shootDelayTimer = 0.f;
+	float shootDelay = 0.f;
+	float range = 5.f;
 	float price;
-	Person(int type, Vec3 asdpos) {
+	Person(int tyape, Vec3 asdpos) {
+		type = tyape;
 		pos = asdpos;
-		switch (type) {
-		case 0:
+		switch (tyape) {
+		case PERSON_ARCHER:
 			price = 100.f;
+			range = 123123312.f;
+			shootDelay = 0.8f;
+			projectileType = PROJECTILE_ARROW;
 		}
 	}
 };
@@ -189,8 +221,10 @@ class Projectile {
 	Vec3 pos{0.f, 0.f, 0.f};
 	Vec3 velocity{0.f, 0.f, 0.f};
 	Vec3 size{0.3f, 0.3f, 0.3f};
+	int type;
 	float age = 0.f;
-	Projectile(Vec3 asdpos, Vec3 asdvelocity) {
+	Projectile(int tyape, Vec3 asdpos, Vec3 asdvelocity) {
+		type = tyape;
 		pos = asdpos;
 		velocity = asdvelocity;
 	}
@@ -199,10 +233,14 @@ Controls controls;
 float roundToPlace(float x, float place) {
 	return round(x / place) * place;
 }
+struct EntitySpawningInfo {
+	int id;
+	float delay;
+};
 class Wave {
 	public:
-		vector<int> entities;
-		Wave(vector<int> them) {
+		vector<EntitySpawningInfo> entities;
+		Wave(vector<EntitySpawningInfo> them) {
 			entities = them;
 		}
 };
@@ -215,62 +253,76 @@ public:
 	Level levels[1] = {{}};
 	int activeLevel = 0;
 	float health = 100.f;
-	int entitySpawnDelay = 5;
+	float entitySpawnDelay = 0.f;
 	Person placingPerson{PERSON_ARCHER, {2.f, 1.f, 2.f}};
 	bool isPlacingPerson = false;
-	float money = 4010.f;
+	float money = 401.f;
 	Wave waveCurrentlySpawning{{}};
-	Wave waves[6] = {
-		{{ENTITY_NORMAL, ENTITY_NORMAL, ENTITY_NORMAL, ENTITY_NORMAL, ENTITY_NORMAL, ENTITY_NORMAL, ENTITY_NORMAL, ENTITY_NORMAL}},
-		{{ENTITY_NORMAL, ENTITY_NORMAL, ENTITY_NORMAL, ENTITY_NORMAL, ENTITY_NORMAL, ENTITY_NORMAL, ENTITY_NORMAL, ENTITY_NORMAL, ENTITY_NORMAL, ENTITY_NORMAL, ENTITY_NORMAL, ENTITY_NORMAL, ENTITY_NORMAL, ENTITY_NORMAL}},
-		{{ENTITY_NORMAL, ENTITY_NORMAL, ENTITY_NORMAL, ENTITY_FAST, ENTITY_NORMAL, ENTITY_FAST, ENTITY_NORMAL, ENTITY_FAST}},
-		{{ENTITY_NORMAL, ENTITY_NORMAL, ENTITY_NORMAL, ENTITY_FAST, ENTITY_NORMAL, ENTITY_FAST, ENTITY_NORMAL, ENTITY_FAST, ENTITY_MONSTER}},
-		{{ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_FAST, ENTITY_NORMAL, ENTITY_FAST, ENTITY_MONSTER}},
-		{{ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER, ENTITY_MONSTER}}
+	Wave waves[15] = {
+		{{{ENTITY_NORMAL, 0.1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}}},
+		{{{ENTITY_NORMAL, 0.1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}}},
+		{{{ENTITY_NORMAL, 0.1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}}},
+		{{{ENTITY_NORMAL, 0.1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .05f}, {ENTITY_NORMAL, .05f}, {ENTITY_NORMAL, .05f}, {ENTITY_NORMAL, .05f}, {ENTITY_NORMAL, .05f}, {ENTITY_NORMAL, .05f}}},
+		{{{ENTITY_NORMAL, 0.1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_FAST, .1f}  , {ENTITY_NORMAL, .1f}, {ENTITY_FAST, .1f}  , {ENTITY_NORMAL, 2.f}, {ENTITY_FAST, .04f}, {ENTITY_FAST, .04f}, {ENTITY_FAST, .04f}, {ENTITY_FAST, .04f}, {ENTITY_FAST, .04f}, {ENTITY_FAST, .04f}, {ENTITY_FAST, .04f}, {ENTITY_FAST, .04f}}},
+		{{{ENTITY_FAST, 0.1f}, {ENTITY_FAST, .1f}, {ENTITY_FAST, .1f}, {ENTITY_FAST, .1f}  , {ENTITY_FAST, .1f}, {ENTITY_FAST, .1f}  , {ENTITY_FAST, 2.f}, {ENTITY_FAST, .04f}, {ENTITY_FAST, .04f}, {ENTITY_FAST, .04f}, {ENTITY_FAST, .04f}, {ENTITY_FAST, .04f}, {ENTITY_FAST, .04f}, {ENTITY_FAST, .04f}, {ENTITY_FAST, .04f}}},
+		{{{ENTITY_NORMAL, 0.1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_FAST, .1f}  , {ENTITY_NORMAL, .1f}, {ENTITY_FAST, .1f}  , {ENTITY_NORMAL, .1f}, {ENTITY_FAST, .1f},   {ENTITY_MONSTER, .1f}}},
+		{{{ENTITY_MONSTER, 0.1f}, {ENTITY_MONSTER, 0.1f}, {ENTITY_MONSTER, 0.1f}, {ENTITY_MONSTER, 0.1f}, {ENTITY_MONSTER, 0.1f}, {ENTITY_FAST, 0.1f}, {ENTITY_NORMAL, 0.1f}, {ENTITY_FAST, .1f}, {ENTITY_MONSTER, 0.1f}}},
+		{{{ENTITY_MONSTER, 0.01f}, {ENTITY_MONSTER, 0.01f}, {ENTITY_MONSTER, 0.01f}, {ENTITY_MONSTER, 0.01f}, {ENTITY_MONSTER, 0.01f}, {ENTITY_FAST, 0.01f}, {ENTITY_NORMAL, 0.01f}, {ENTITY_FAST, .01f}}},
+		{{{ENTITY_MONSTER, 0.1f}, {ENTITY_MONSTER, 0.1f}, {ENTITY_MONSTER, 0.1f}, {ENTITY_MONSTER, 0.1f}, {ENTITY_MONSTER, 0.1f}}},
+		{{{ENTITY_MONSTER, 0.01f}, {ENTITY_MONSTER, 0.01f}, {ENTITY_MONSTER, 0.01f}, {ENTITY_MONSTER, 0.01f}, {ENTITY_MONSTER, 0.01f}}},
+		{{{ENTITY_MONSTER, 0.01f}, {ENTITY_MONSTER, 0.01f}, {ENTITY_MONSTER, 0.01f}, {ENTITY_MONSTER, 0.01f}, {ENTITY_MONSTER, 0.01f}}},
+		{{{ENTITY_MONSTER, 0.01f}, {ENTITY_MONSTER, 0.01f}, {ENTITY_MONSTER, 0.01f}, {ENTITY_MONSTER, 0.01f}, {ENTITY_MONSTER, 0.01f}}},
+		{{{ENTITY_MONSTER, 0.01f}, {ENTITY_NORMAL, 0.1f}, {ENTITY_FAST, 0.1f}, {ENTITY_FAST, 0.1f}, {ENTITY_MONSTER, 0.01f}, {ENTITY_MONSTER, 0.01f}, {ENTITY_MONSTER, 0.01f}, {ENTITY_IRON_MAIDEN, 0.01f}}},
+		{{{ENTITY_ADMIN, 0.01f}}},
 	};
 	int waveNumber = 0;
+	float d = 1.0;
 	
 	void tick(int width, int height) {
-		if (controls.w) camera.pos.z -= 0.1f;
-		if (controls.a) camera.pos.x -= 0.1f;
-		if (controls.s) camera.pos.z += 0.1f;
-		if (controls.d) camera.pos.x += 0.1f;
-		if (controls.up) camera.rotation.x += 0.01f;
-		if (controls.down) camera.rotation.x -= 0.01f;
-		if (controls.left) camera.rotation.y -= 0.01f;
-		if (controls.right) camera.rotation.y += 0.01f;
+		if (controls.w) camera.pos.z -= 0.1f * d;
+		if (controls.a) camera.pos.x -= 0.1f * d;
+		if (controls.s) camera.pos.z += 0.1f * d;
+		if (controls.d) camera.pos.x += 0.1f * d;
+		if (controls.up) camera.rotation.x += 0.01f * d;
+		if (controls.down) camera.rotation.x -= 0.01f * d;
+		if (controls.left) camera.rotation.y -= 0.01f * d;
+		if (controls.right) camera.rotation.y += 0.01f * d;
+		controls.previousClipMouse = controls.clipMouse;
+		controls.clipMouse.x = (controls.mouse.x / (float)width - 0.5f) * 2.f;
+		controls.clipMouse.y = (0.5f - controls.mouse.y / (float)height) * 2.f;
 		controls.worldMouse.x = controls.mouse.x * 10.f / (float)width;
 		controls.worldMouse.y = 10.f - controls.mouse.y * 10.f / (float)height;
 
-		if (entitySpawnDelay <= 0 && waveCurrentlySpawning.entities.size() > 0) {
-			entities.push_back({waveCurrentlySpawning.entities[0], levels[activeLevel].path[0]});
-			waveCurrentlySpawning.entities.erase(waveCurrentlySpawning.entities.begin());
-			entitySpawnDelay = 20;
-		} else {
-			entitySpawnDelay--;
-		};
-		if (controls.space) {
-			isPlacingPerson = true;
+		if (controls.clipMouse.x < -0.7f && controls.previousClipMouse.x >= -0.7f) {
+			isPlacingPerson = false;
 		}
+
+		if (entitySpawnDelay <= 0.f && waveCurrentlySpawning.entities.size() > 0) {
+			entities.push_back({waveCurrentlySpawning.entities[0].id, levels[activeLevel].path[0]});
+			entitySpawnDelay = waveCurrentlySpawning.entities[0].delay;
+			waveCurrentlySpawning.entities.erase(waveCurrentlySpawning.entities.begin());
+		} else {
+			entitySpawnDelay -= d / 60.f;
+		};
 		if (isPlacingPerson) {
 			placingPerson.pos.x = controls.worldMouse.y;
 			placingPerson.pos.z = controls.worldMouse.x;
 		}
 
 		for (int i = 0; i < people.size(); i++) {
-			if (people[i].shootDelay <= 0) {
-				people[i].shootDelay = 50;
+			if (people[i].shootDelay <= 0.f) {
+				people[i].shootDelay = 0.8f;
 				if (entities.size() > 0) {
-					spawnProjectile(people[i].pos.x, people[i].pos.z, vec3Subtract(entities[0].pos, people[i].pos).normalise(0.4f));
+					spawnProjectile(people[i].projectileType, people[i].pos.x, people[i].pos.z, vec3Subtract(entities[0].pos, people[i].pos).normalise(1.143f));
 				}
 			} else {
-				people[i].shootDelay--;
+				people[i].shootDelay -= d / 60.f;
 			}
 		}
 		for (int i = projectiles.size() - 1; i >= 0; i--) {
-			projectiles[i].pos = vec3Add(projectiles[i].pos, projectiles[i].velocity);
-			projectiles[i].age++;
-			if (projectiles[i].age > 300) {
+			projectiles[i].pos = vec3Add(projectiles[i].pos, vec3Mul(projectiles[i].velocity, d));
+			projectiles[i].age += d / 60.f;
+			if (projectiles[i].age > 5.f) {
 				projectiles.erase(projectiles.begin() + i);
 				continue;
 			}
@@ -296,7 +348,7 @@ public:
 			bool die = entities[i].health <= 0.f;
 			Vec3 targetPoint = levels[activeLevel].path[entities[i].targetPoint];
 			float distanceToTargetPoint = distance3D(entities[i].pos, targetPoint);
-			if (distanceToTargetPoint < entities[i].speed) {
+			if (distanceToTargetPoint < entities[i].speed * d) {
 				entities[i].targetPoint++;
 				if (entities[i].targetPoint >= levels[activeLevel].path.size()) {
 					health -= entities[i].damage;
@@ -305,9 +357,9 @@ public:
 				targetPoint = levels[activeLevel].path[entities[i].targetPoint];
 				distanceToTargetPoint = distance3D(entities[i].pos, targetPoint);
 			}
-			entities[i].pos.x += (targetPoint.x - entities[i].pos.x) / distanceToTargetPoint * entities[i].speed;
-			entities[i].pos.y += (targetPoint.y - entities[i].pos.y) / distanceToTargetPoint * entities[i].speed;
-			entities[i].pos.z += (targetPoint.z - entities[i].pos.z) / distanceToTargetPoint * entities[i].speed;
+			entities[i].pos.x += (targetPoint.x - entities[i].pos.x) / distanceToTargetPoint * entities[i].speed * d;
+			entities[i].pos.y += (targetPoint.y - entities[i].pos.y) / distanceToTargetPoint * entities[i].speed * d;
+			entities[i].pos.z += (targetPoint.z - entities[i].pos.z) / distanceToTargetPoint * entities[i].speed * d;
 			if (die) {
 				entities.erase(entities.begin() + i);
 			}
@@ -323,11 +375,15 @@ public:
 			entities.push_back({ENTITY_FAST, levels[activeLevel].path[0]});
 		}
 	}
-	void spawnProjectile(float x, float z, Vec3 vel) {
-		projectiles.push_back({{x, 2.f, z}, vec3Add(vel, (Vec3){randFloat() * 0.1f - 0.05f, 0.f, randFloat() * 0.1f - 0.05f})});
+	void spawnProjectile(int type, float x, float z, Vec3 vel) {
+		Vec3 randomVel{randFloat() * 0.1f - 0.05f, 0.f, randFloat() * 0.1f - 0.05f};
+		projectiles.push_back({type, {x, 2.f, z}, vec3Add(vel, randomVel)});
 	}
 	void spawnWave(Wave wave) {
 		waveCurrentlySpawning = wave;
+	}
+	bool waveEnded() {
+		return waveCurrentlySpawning.entities.size() == 0 && entities.size() == 0;
 	}
 };
 Vec2 getCharacterCoords(char c) {
@@ -464,10 +520,19 @@ public:
 		for (Projectile projectile : game->projectiles) {
 			addPath(projectile.pos, vec3Add(projectile.pos, projectile.velocity), 0.f, 6.f, 0.1f);
 		}
-		addText("HEALTH: " + to_string((int)game->health), -0.9f, 0.8f, 0.1f, 0.8f);
-		addText("WAVE " + to_string(game->waveNumber), 0.3f, 0.8f, 0.1f, 0.8f);
-		addText("$" + to_string((int)game->money), -0.9f, 0.6f, 0.1f, 0.8f);
-		addText("(space) archer: $100", -0.9f, -0.9f, -0.9f, 0.8f);
+		addText("HEALTH: " + std::to_string((int)game->health), -0.97f, 0.88f, 0.07f, 0.8f);
+		addText("WAVE " + to_string(game->waveNumber) + "/" + to_string((int)(sizeof(game->waves) / sizeof(game -> waves[0]))), -0.3f, -0.97f, 0.07f, 0.8f);
+		addText("$" + to_string((long long)game->money), -0.1f, 0.75f, 0.07f, 0.8f);
+		if (game->waveNumber == (int)(sizeof(game->waves) / sizeof(game -> waves[0])) && game->waveEnded() && game->health > 0.f) {
+			addText("YOU WON", -0.9f, -0.9f, 0.2f, 0.8f);
+		}
+		if (game->waveEnded()) {
+			addRect(0.7f, -0.95f, 0.25f, 0.25f, 0.f, 7.f);
+		} else {
+			addRect(0.7f, -0.95f, 0.25f, 0.25f, 1.f, 7.f);
+		}
+		addRect(-1.f, -1.f, 0.3f, 2.f, 2.f, 7.f);
+		addRect(-0.98f, 0.7f, 0.13f, 0.13f, 2.f, 7.f);
 	}
 private:
 	void clearVertices() {
@@ -556,6 +621,19 @@ private:
 			1U+end, 3U+end, 2U+end
 		});
 	}
+	void addRect(float x, float y, float w, float h, float u, float v) {
+		unsigned int end = vertices.size();
+		indices.insert(indices.end(), {
+			0U+end, 1U+end, 2U+end,
+			1U+end, 3U+end, 2U+end
+		});
+		vertices.insert(vertices.end(), {
+			{x  , y+h, x*-0.1f, u    , v    , 0.f},
+			{x+w, y+h, x*-0.1f, u+1.f, v    , 0.f},
+			{x  , y  , x*-0.1f, u    , v+1.f, 0.f},
+			{x+w, y  , x*-0.1f, u+1.f, v+1.f, 0.f}
+		});
+	}
 };
 GameState game;
 GameStateVertexBuilder vBuilder;
@@ -574,10 +652,6 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 		else if (key == GLFW_KEY_UP) controls.up = true;
 		else if (key == GLFW_KEY_DOWN) controls.down = true;
 		else if (key == GLFW_KEY_P) controls.p = true;
-		else if (key == GLFW_KEY_Z && game.entities.size() == 0 && game.waveNumber < sizeof(game.waves) / sizeof(game.waves[0])) {
-			game.spawnWave(game.waves[game.waveNumber]);
-			game.waveNumber++;
-		};
 	}
 	else if (action == GLFW_RELEASE) {
 		if (key == GLFW_KEY_W) controls.w = false;
@@ -603,6 +677,13 @@ static void mouse_button_callback(GLFWwindow* window, int button, int action, in
 			game.isPlacingPerson = false;
 			game.money -= game.placingPerson.price;
 		};
+		if (controls.clipMouse.x > 0.7f && controls.clipMouse.y < -0.7f && controls.clipMouse.x < 0.95f && controls.clipMouse.y > -0.95f && game.waveEnded() && game.waveNumber < sizeof(game.waves) / sizeof(game.waves[0])) {
+			game.spawnWave(game.waves[game.waveNumber]);
+			game.waveNumber++;
+		}
+		if (controls.clipMouse.x > -0.98f && controls.clipMouse.x < -0.85f && controls.clipMouse.y > 0.7f && controls.clipMouse.y < 0.83f) {
+			game.isPlacingPerson = true;
+		}
 
 		controls.mouseDown = true;
     }
@@ -611,6 +692,15 @@ static void mouse_button_callback(GLFWwindow* window, int button, int action, in
        //getting cursor position
        glfwGetCursorPos(window, &xpos, &ypos);
 	   controls.mouseDown = false;
+    }
+    if(button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
+    	double xpos, ypos;
+    	//getting cursor position
+    	glfwGetCursorPos(window, &xpos, &ypos);
+
+		game.isPlacingPerson = false;
+
+		controls.mouseDown = true;
     }
 }
 static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
@@ -634,7 +724,7 @@ int main(void) {
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 
-	window = glfwCreateWindow(640, 480, "Human Tower Defence", NULL, NULL);
+	window = glfwCreateWindow(640, 480, "Human Tower Defense", NULL, NULL);
 	if (!window)
 	{
 		glfwTerminate();
