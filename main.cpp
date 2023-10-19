@@ -99,7 +99,7 @@ public:
 		return sqrt(x*x+y*y+z*z);
 	}
 	Vec3 normalise(float strength) {
-		float magnitude = getMagnitude();
+		float magnitude = max(getMagnitude(), 0.001f);
 		return {x / magnitude * strength, y / magnitude * strength, z / magnitude * strength};
 	}
 };
@@ -126,6 +126,8 @@ Vec3 vec3Mul(Vec3 a, float b) {
 #define ENTITY_MONSTER 2
 #define ENTITY_ADMIN 3
 #define ENTITY_IRON_MAIDEN 4
+#define ENTITY_TUNGSTEN_MAIDEN 5
+#define ENTITY_TWIN 6
 class Entity {
 public:
 	int type;
@@ -144,18 +146,21 @@ public:
 		case ENTITY_NORMAL:
 			speed = 0.03f;
 			u = 0.f;
+			health = 1.f;
 			reward = 1.f;
 			damage = 1.f;
 			break;
 		case ENTITY_FAST:
 			speed = 0.1f;
 			u = 1.f;
+			health = 1.f;
 			reward = 5.f;
 			damage = 2.f;
 			break;
 		case ENTITY_MONSTER:
-			speed = 0.5f;
+			speed = 0.3f;
 			u = 2.f;
+			health = 1.f;
 			reward = 20.f;
 			damage = 15.f;
 			break;
@@ -172,6 +177,20 @@ public:
 			health = 500.f;
 			reward = 150.f;
 			damage = 25.f;
+			break;
+		case ENTITY_TUNGSTEN_MAIDEN:
+			speed = 0.01f;
+			u = 4.f;
+			health = 5000.f;
+			reward = 1500.f;
+			damage = 99.f;
+			break;
+		case ENTITY_TWIN:
+			speed = 0.15f;
+			u = 7.f;
+			health = 3.f;
+			reward = 2.f;
+			damage = 5.f;
 			break;
 		}
 	}
@@ -191,31 +210,11 @@ public:
 };
 #define PERSON_ARCHER 0
 #define PERSON_CANNON 1
+#define PERSON_TURRET 2
 
 #define PROJECTILE_ARROW 0
 #define PROJECTILE_CANNONBALL 1
-class Person {
-	public:
-	Vec3 pos{0.f, 0.f, 0.f};
-	Vec3 size{1.f, 1.f, 1.f};
-	int type;
-	int projectileType;
-	float shootDelayTimer = 0.f;
-	float shootDelay = 0.f;
-	float range = 5.f;
-	float price;
-	Person(int tyape, Vec3 asdpos) {
-		type = tyape;
-		pos = asdpos;
-		switch (tyape) {
-		case PERSON_ARCHER:
-			price = 100.f;
-			range = 123123312.f;
-			shootDelay = 0.8f;
-			projectileType = PROJECTILE_ARROW;
-		}
-	}
-};
+#define PROJECTILE_BULLET 2
 class Projectile {
 	public:
 	Vec3 pos{0.f, 0.f, 0.f};
@@ -223,10 +222,70 @@ class Projectile {
 	Vec3 size{0.3f, 0.3f, 0.3f};
 	int type;
 	float age = 0.f;
+	float damage = 1.f;
+	float u;
+	float speed = 0.1f;
 	Projectile(int tyape, Vec3 asdpos, Vec3 asdvelocity) {
 		type = tyape;
 		pos = asdpos;
 		velocity = asdvelocity;
+		switch (type) {
+		case PROJECTILE_ARROW:
+			damage = 1.f;
+			u = 0.f;
+			speed = 1.143f;
+			break;
+		case PROJECTILE_CANNONBALL:
+			damage = 4.f;
+			u = 1.f;
+			speed = 0.2f;
+			break;
+		case PROJECTILE_BULLET:
+			damage = 2.f;
+			u = 2.f;
+			speed = 1.3f;
+			break;
+		}
+	}
+};
+class Person {
+	public:
+	Vec3 pos{0.f, 0.f, 0.f};
+	Vec3 size{1.f, 1.f, 1.f};
+	int type;
+	Projectile projectile{PROJECTILE_ARROW, {0.f, 0.f, 0.f}, {0.f, 0.f, 0.f}};
+	float shootDelayTimer = 0.f;
+	float shootDelay = 0.f;
+	float range = 5.f;
+	float price;
+	float u;
+	bool selected = false;
+	Person(int tyape, Vec3 asdpos) {
+		type = tyape;
+		pos = asdpos;
+		switch (tyape) {
+		case PERSON_ARCHER:
+			price = 100.f;
+			range = 5.f;
+			shootDelay = 0.8f;
+			projectile = {PROJECTILE_ARROW, {0.f, 2.f, 0.f}, {0.f, 0.f, 0.f}};
+			u = 0.f;
+			break;
+		case PERSON_CANNON:
+			price = 200.f;
+			range = 4.f;
+			shootDelay = 1.5f;
+			projectile = {PROJECTILE_CANNONBALL, {0.f, 2.f, 0.f}, {0.f, 0.f, 0.f}};
+			u = 1.f;
+			break;
+		case PERSON_TURRET:
+			price = 450.f;
+			range = 15.f;
+			shootDelay = 0.2f;
+			projectile = {PROJECTILE_BULLET, {0.f, 2.f, 0.f}, {0.f, 0.f, 0.f}};
+			u = 2.f;
+			break;
+		}
 	}
 };
 Controls controls;
@@ -240,8 +299,10 @@ struct EntitySpawningInfo {
 class Wave {
 	public:
 		vector<EntitySpawningInfo> entities;
-		Wave(vector<EntitySpawningInfo> them) {
+		string message;
+		Wave(string messaage, vector<EntitySpawningInfo> them) {
 			entities = them;
+			message = messaage;
 		}
 };
 class GameState {
@@ -257,26 +318,30 @@ public:
 	Person placingPerson{PERSON_ARCHER, {2.f, 1.f, 2.f}};
 	bool isPlacingPerson = false;
 	float money = 401.f;
-	Wave waveCurrentlySpawning{{}};
-	Wave waves[15] = {
-		{{{ENTITY_NORMAL, 0.1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}}},
-		{{{ENTITY_NORMAL, 0.1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}}},
-		{{{ENTITY_NORMAL, 0.1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}}},
-		{{{ENTITY_NORMAL, 0.1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .05f}, {ENTITY_NORMAL, .05f}, {ENTITY_NORMAL, .05f}, {ENTITY_NORMAL, .05f}, {ENTITY_NORMAL, .05f}, {ENTITY_NORMAL, .05f}}},
-		{{{ENTITY_NORMAL, 0.1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_FAST, .1f}  , {ENTITY_NORMAL, .1f}, {ENTITY_FAST, .1f}  , {ENTITY_NORMAL, 2.f}, {ENTITY_FAST, .04f}, {ENTITY_FAST, .04f}, {ENTITY_FAST, .04f}, {ENTITY_FAST, .04f}, {ENTITY_FAST, .04f}, {ENTITY_FAST, .04f}, {ENTITY_FAST, .04f}, {ENTITY_FAST, .04f}}},
-		{{{ENTITY_FAST, 0.1f}, {ENTITY_FAST, .1f}, {ENTITY_FAST, .1f}, {ENTITY_FAST, .1f}  , {ENTITY_FAST, .1f}, {ENTITY_FAST, .1f}  , {ENTITY_FAST, 2.f}, {ENTITY_FAST, .04f}, {ENTITY_FAST, .04f}, {ENTITY_FAST, .04f}, {ENTITY_FAST, .04f}, {ENTITY_FAST, .04f}, {ENTITY_FAST, .04f}, {ENTITY_FAST, .04f}, {ENTITY_FAST, .04f}}},
-		{{{ENTITY_NORMAL, 0.1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_FAST, .1f}  , {ENTITY_NORMAL, .1f}, {ENTITY_FAST, .1f}  , {ENTITY_NORMAL, .1f}, {ENTITY_FAST, .1f},   {ENTITY_MONSTER, .1f}}},
-		{{{ENTITY_MONSTER, 0.1f}, {ENTITY_MONSTER, 0.1f}, {ENTITY_MONSTER, 0.1f}, {ENTITY_MONSTER, 0.1f}, {ENTITY_MONSTER, 0.1f}, {ENTITY_FAST, 0.1f}, {ENTITY_NORMAL, 0.1f}, {ENTITY_FAST, .1f}, {ENTITY_MONSTER, 0.1f}}},
-		{{{ENTITY_MONSTER, 0.01f}, {ENTITY_MONSTER, 0.01f}, {ENTITY_MONSTER, 0.01f}, {ENTITY_MONSTER, 0.01f}, {ENTITY_MONSTER, 0.01f}, {ENTITY_FAST, 0.01f}, {ENTITY_NORMAL, 0.01f}, {ENTITY_FAST, .01f}}},
-		{{{ENTITY_MONSTER, 0.1f}, {ENTITY_MONSTER, 0.1f}, {ENTITY_MONSTER, 0.1f}, {ENTITY_MONSTER, 0.1f}, {ENTITY_MONSTER, 0.1f}}},
-		{{{ENTITY_MONSTER, 0.01f}, {ENTITY_MONSTER, 0.01f}, {ENTITY_MONSTER, 0.01f}, {ENTITY_MONSTER, 0.01f}, {ENTITY_MONSTER, 0.01f}}},
-		{{{ENTITY_MONSTER, 0.01f}, {ENTITY_MONSTER, 0.01f}, {ENTITY_MONSTER, 0.01f}, {ENTITY_MONSTER, 0.01f}, {ENTITY_MONSTER, 0.01f}}},
-		{{{ENTITY_MONSTER, 0.01f}, {ENTITY_MONSTER, 0.01f}, {ENTITY_MONSTER, 0.01f}, {ENTITY_MONSTER, 0.01f}, {ENTITY_MONSTER, 0.01f}}},
-		{{{ENTITY_MONSTER, 0.01f}, {ENTITY_NORMAL, 0.1f}, {ENTITY_FAST, 0.1f}, {ENTITY_FAST, 0.1f}, {ENTITY_MONSTER, 0.01f}, {ENTITY_MONSTER, 0.01f}, {ENTITY_MONSTER, 0.01f}, {ENTITY_IRON_MAIDEN, 0.01f}}},
-		{{{ENTITY_ADMIN, 0.01f}}},
+	Wave waveCurrentlySpawning{"", {}};
+	Wave waves[17] = {
+		{"", {{ENTITY_NORMAL, 0.2f}, {ENTITY_NORMAL, .2f}, {ENTITY_NORMAL, .2f}, {ENTITY_NORMAL, .2f}, {ENTITY_NORMAL, .2f}, {ENTITY_NORMAL, .2f}, {ENTITY_NORMAL, .2f}, {ENTITY_NORMAL, .2f}}},
+		{"", {{ENTITY_NORMAL, 0.1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}}},
+		{"", {{ENTITY_NORMAL, 0.05f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .05f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .05f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .05f}, {ENTITY_NORMAL, .1f}}},
+		{"", {{ENTITY_NORMAL, 0.1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .08f}, {ENTITY_NORMAL, .08f}, {ENTITY_NORMAL, .08f}, {ENTITY_NORMAL, .08f}, {ENTITY_NORMAL, .08f}, {ENTITY_NORMAL, .08f}}},
+		{"", {{ENTITY_NORMAL, 0.1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_FAST, .1f}  , {ENTITY_NORMAL, .1f}, {ENTITY_FAST, .1f}  , {ENTITY_NORMAL, 2.f}, {ENTITY_FAST, .04f}, {ENTITY_FAST, .04f}, {ENTITY_FAST, .04f}, {ENTITY_FAST, .04f}, {ENTITY_FAST, .04f}, {ENTITY_FAST, .04f}, {ENTITY_FAST, .04f}, {ENTITY_FAST, .04f}}},
+		{"", {{ENTITY_FAST, 0.1f}, {ENTITY_FAST, .1f}, {ENTITY_FAST, .1f}, {ENTITY_FAST, .1f}  , {ENTITY_FAST, .1f}, {ENTITY_FAST, .1f}  , {ENTITY_FAST, 1.f}, {ENTITY_FAST, .04f}, {ENTITY_FAST, .04f}, {ENTITY_FAST, .04f}, {ENTITY_FAST, .04f}, {ENTITY_FAST, .04f}, {ENTITY_FAST, .04f}, {ENTITY_FAST, .04f}, {ENTITY_FAST, .04f}}},
+		{"", {{ENTITY_NORMAL, 0.1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_FAST, .1f}  , {ENTITY_NORMAL, .1f}, {ENTITY_FAST, .1f}  , {ENTITY_NORMAL, .1f}, {ENTITY_FAST, .1f},   {ENTITY_NORMAL, .1f}}},
+		{"", {{ENTITY_FAST, 0.1f}, {ENTITY_FAST, .1f}, {ENTITY_FAST, .1f}, {ENTITY_FAST, .1f}  , {ENTITY_FAST, .1f}, {ENTITY_FAST, .1f}  , {ENTITY_NORMAL, .1f}, {ENTITY_FAST, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_FAST, .1f}, {ENTITY_FAST, .1f}, {ENTITY_FAST, .1f}, {ENTITY_FAST, .1f}, {ENTITY_FAST, .1f}, {ENTITY_FAST, .1f}, {ENTITY_FAST, .1f}, {ENTITY_FAST, .1f}}},
+		{"monster this wave", {{ENTITY_MONSTER, 0.1f}}},
+		{"", {{ENTITY_NORMAL, 0.05f},{ENTITY_NORMAL, 0.05f},{ENTITY_NORMAL, 0.05f},{ENTITY_NORMAL, 0.05f},{ENTITY_NORMAL, 0.05f},{ENTITY_NORMAL, 0.05f},{ENTITY_NORMAL, 0.05f},{ENTITY_FAST, 0.05f},{ENTITY_FAST, 0.05f},{ENTITY_FAST, 0.05f},{ENTITY_FAST, 0.05f},{ENTITY_FAST, 0.05f},{ENTITY_FAST, 0.05f},{ENTITY_FAST, 0.05f},{ENTITY_FAST, 0.05f},{ENTITY_FAST, 0.05f},{ENTITY_FAST, 0.05f},{ENTITY_FAST, 0.05f},{ENTITY_FAST, 0.05f},{ENTITY_FAST, 0.05f},{ENTITY_FAST, 0.05f},{ENTITY_FAST, 0.05f},{ENTITY_FAST, 0.05f},{ENTITY_FAST, 0.05f},{ENTITY_FAST, 0.05f},{ENTITY_FAST, 0.05f},{ENTITY_FAST, 0.05f},{ENTITY_FAST, 0.05f},{ENTITY_FAST, 0.05f},{ENTITY_FAST, 0.05f},{ENTITY_FAST, 0.05f},{ENTITY_FAST, 0.05f},{ENTITY_FAST, 0.05f},{ENTITY_FAST, 0.05f}}},
+		{"", {{ENTITY_FAST, 0.1f}, {ENTITY_FAST, 0.1f}, {ENTITY_NORMAL, 0.1f}, {ENTITY_FAST, .1f}, {ENTITY_MONSTER, 0.1f}}},
+		{"", {{ENTITY_MONSTER, .1f}, {ENTITY_FAST, .1f}, {ENTITY_FAST, .1f}, {ENTITY_FAST, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_FAST, .1f}, {ENTITY_FAST, .1f}, {ENTITY_FAST, .1f}, {ENTITY_FAST, .1f}}},
+		{"", {{ENTITY_MONSTER, .05f}, {ENTITY_MONSTER, .05f}, {ENTITY_MONSTER, .05f}, {ENTITY_MONSTER, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_FAST, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_FAST, .1f}}},
+		{"", {{ENTITY_FAST, .5f}, {ENTITY_FAST, .5f}, {ENTITY_FAST, .5f}, {ENTITY_FAST, .5f}, {ENTITY_FAST, .5f}, {ENTITY_FAST, .5f}, {ENTITY_FAST, .5f}, {ENTITY_NORMAL, .5f}, {ENTITY_FAST, .5f}}},
+		{"iron maiden has alot of hp", {{ENTITY_MONSTER, 0.01f}, {ENTITY_NORMAL, 0.1f}, {ENTITY_FAST, 0.1f}, {ENTITY_FAST, 0.1f}, {ENTITY_MONSTER, 0.01f}, {ENTITY_MONSTER, 0.01f}, {ENTITY_MONSTER, 0.01f}, {ENTITY_IRON_MAIDEN, 0.01f}}},
+		{"admin after this", {}},
+		{"admin", {{ENTITY_ADMIN, 0.1f}}}
 	};
 	int waveNumber = 0;
 	float d = 1.0;
+	string message;
+	float messageTime;
 	
 	void tick(int width, int height) {
 		if (controls.w) camera.pos.z -= 0.1f * d;
@@ -290,8 +355,10 @@ public:
 		controls.previousClipMouse = controls.clipMouse;
 		controls.clipMouse.x = (controls.mouse.x / (float)width - 0.5f) * 2.f;
 		controls.clipMouse.y = (0.5f - controls.mouse.y / (float)height) * 2.f;
-		controls.worldMouse.x = controls.mouse.x * 10.f / (float)width;
-		controls.worldMouse.y = 10.f - controls.mouse.y * 10.f / (float)height;
+		controls.worldMouse.x = controls.clipMouse.x * 5.f * (float)width / (float)height + 5.f;
+		controls.worldMouse.y = controls.clipMouse.y * 5.f + 5.f;
+
+		messageTime -= d / 60.f;
 
 		if (controls.clipMouse.x < -0.7f && controls.previousClipMouse.x >= -0.7f) {
 			isPlacingPerson = false;
@@ -310,13 +377,15 @@ public:
 		}
 
 		for (int i = 0; i < people.size(); i++) {
-			if (people[i].shootDelay <= 0.f) {
-				people[i].shootDelay = 0.8f;
+			if (people[i].shootDelayTimer <= 0.f) {
+				people[i].shootDelayTimer = people[i].shootDelay;
 				if (entities.size() > 0) {
-					spawnProjectile(people[i].projectileType, people[i].pos.x, people[i].pos.z, vec3Subtract(entities[0].pos, people[i].pos).normalise(1.143f));
+					projectiles.push_back(people[i].projectile);
+					projectiles[projectiles.size() - 1].pos = people[i].pos;
+					projectiles[projectiles.size() - 1].velocity = vec3Subtract(entities[0].pos, people[i].pos).normalise(projectiles[projectiles.size() - 1].speed);
 				}
 			} else {
-				people[i].shootDelay -= d / 60.f;
+				people[i].shootDelayTimer -= d / 60.f;
 			}
 		}
 		for (int i = projectiles.size() - 1; i >= 0; i--) {
@@ -336,12 +405,26 @@ public:
 					projectiles[i].pos.z + projectiles[i].size.z / 2.f > entities[j].pos.z - entities[j].size.z / 2.f
 				) {
 					projectiles.erase(projectiles.begin() + i);
-					entities[j].health -= 1.f;
+					entities[j].health -= projectiles[i].damage;
 					if (entities[j].health <= 0.f) {
 						money += entities[j].reward;
+						if (entities[j].type == ENTITY_TUNGSTEN_MAIDEN) {
+							for (int k = 0; k < 5; k++) {
+								entities.push_back({ENTITY_IRON_MAIDEN, {entities[j].pos.x + randFloat() * 1.f - 0.5f, entities[j].pos.y, entities[j].pos.z + randFloat() * 1.f - 0.5f}});
+								entities[entities.size() - 1].targetPoint = entities[j].targetPoint;
+							}
+						} else if (entities[j].type == ENTITY_TWIN) {
+							for (int k = 0; k < 2; k++) {
+								entities.push_back({ENTITY_FAST, {entities[j].pos.x + randFloat() * 1.f - 0.5f, entities[j].pos.y, entities[j].pos.z + randFloat() * 1.f - 0.5f}});
+								entities[entities.size() - 1].targetPoint = entities[j].targetPoint;
+							}
+						}
+						if (waves[waveNumber].message.length() > 0 && entities.size() == 1 && waveCurrentlySpawning.entities.size() == 0) {
+							showMessage(waves[waveNumber].message, 1.5f);
+						}
 					};
 					break;
-				};
+				}
 			}
 		}
 		for (int i = entities.size() - 1; i >= 0; i--) {
@@ -384,6 +467,10 @@ public:
 	}
 	bool waveEnded() {
 		return waveCurrentlySpawning.entities.size() == 0 && entities.size() == 0;
+	}
+	void showMessage(string text, float time) {
+		message = text;
+		messageTime = time;
 	}
 };
 Vec2 getCharacterCoords(char c) {
@@ -511,14 +598,18 @@ public:
 		}
 		//people
 		for (Person person : game->people) {
-			addCube(person.pos.x - person.size.x / 2.f, person.pos.y, person.pos.z - person.size.z / 2.f, person.size.x, person.size.y, person.size.z, 0.f, 2.f);
+			addCube(person.pos.x - person.size.x / 2.f, person.pos.y, person.pos.z - person.size.z / 2.f, person.size.x, person.size.y, person.size.z, person.u, 2.f);
+			if (person.selected) {
+				addPlane(person.pos.x - person.range, person.pos.y + 0.1f, person.pos.z - person.range, person.range * 2.f, person.range * 2.f, 3.f, 7.f);
+			}
 		}
 		if (game->isPlacingPerson) {
-			addCube(game->placingPerson.pos.x - game->placingPerson.size.x / 2.f, game->placingPerson.pos.y, game->placingPerson.pos.z - game->placingPerson.size.z / 2.f, game->placingPerson.size.x, game->placingPerson.size.y, game->placingPerson.size.z, 0.f, 2.f);
+			addCube(game->placingPerson.pos.x - game->placingPerson.size.x / 2.f, game->placingPerson.pos.y, game->placingPerson.pos.z - game->placingPerson.size.z / 2.f, game->placingPerson.size.x, game->placingPerson.size.y, game->placingPerson.size.z, game->placingPerson.u, 2.f);
+			addPlane(game->placingPerson.pos.x - game->placingPerson.range, game->placingPerson.pos.y + 0.1f, game->placingPerson.pos.z - game->placingPerson.range, game->placingPerson.range * 2.f, game->placingPerson.range * 2.f, 4.f, 7.f);
 		}
 		//projectiles
 		for (Projectile projectile : game->projectiles) {
-			addPath(projectile.pos, vec3Add(projectile.pos, projectile.velocity), 0.f, 6.f, 0.1f);
+			addPath(projectile.pos, vec3Add(projectile.pos, projectile.velocity), projectile.u, 6.f, 0.1f);
 		}
 		addText("HEALTH: " + std::to_string((int)game->health), -0.97f, 0.88f, 0.07f, 0.8f);
 		addText("WAVE " + to_string(game->waveNumber) + "/" + to_string((int)(sizeof(game->waves) / sizeof(game -> waves[0]))), -0.3f, -0.97f, 0.07f, 0.8f);
@@ -532,7 +623,13 @@ public:
 			addRect(0.7f, -0.95f, 0.25f, 0.25f, 1.f, 7.f);
 		}
 		addRect(-1.f, -1.f, 0.3f, 2.f, 2.f, 7.f);
-		addRect(-0.98f, 0.7f, 0.13f, 0.13f, 2.f, 7.f);
+		addRect(-0.98f, 0.7f, 0.13f, 0.13f, 0.f, 2.f);
+		addRect(-0.83f, 0.7f, 0.13f, 0.13f, 1.f, 2.f);
+		addRect(-0.98f, 0.55f, 0.13f, 0.13f, 2.f, 2.f);
+		if (game->messageTime > 0.f) {
+			addRect(-0.5f, -0.9f, 1.f, 0.5f, 2.f, 7.f);
+			addText(game->message, -0.45f, -0.6f, 0.07f, 0.7f);
+		}
 	}
 private:
 	void clearVertices() {
@@ -674,15 +771,39 @@ static void mouse_button_callback(GLFWwindow* window, int button, int action, in
 
 		if (game.isPlacingPerson && game.money >= game.placingPerson.price) {
 			game.people.push_back(game.placingPerson);
-			game.isPlacingPerson = false;
 			game.money -= game.placingPerson.price;
+			game.isPlacingPerson = false;
 		};
 		if (controls.clipMouse.x > 0.7f && controls.clipMouse.y < -0.7f && controls.clipMouse.x < 0.95f && controls.clipMouse.y > -0.95f && game.waveEnded() && game.waveNumber < sizeof(game.waves) / sizeof(game.waves[0])) {
 			game.spawnWave(game.waves[game.waveNumber]);
 			game.waveNumber++;
 		}
+		//PEOPLE PLACNG BUTTONS
 		if (controls.clipMouse.x > -0.98f && controls.clipMouse.x < -0.85f && controls.clipMouse.y > 0.7f && controls.clipMouse.y < 0.83f) {
 			game.isPlacingPerson = true;
+			game.placingPerson = {PERSON_ARCHER, {2.f, 1.f, 2.f}};
+			if (game.money < game.placingPerson.price) {
+				game.isPlacingPerson = false;
+			}
+		}
+		if (controls.clipMouse.x > -0.83f && controls.clipMouse.x < -0.7f && controls.clipMouse.y > 0.7f && controls.clipMouse.y < 0.83f) {
+			game.isPlacingPerson = true;
+			game.placingPerson = {PERSON_CANNON, {2.f, 1.f, 2.f}};
+			if (game.money < game.placingPerson.price) {
+				game.isPlacingPerson = false;
+			}
+		}
+		if (controls.clipMouse.x > -0.98f && controls.clipMouse.x < -0.85f && controls.clipMouse.y > 0.55f && controls.clipMouse.y < 0.68f) {
+			game.isPlacingPerson = true;
+			game.placingPerson = {PERSON_TURRET, {2.f, 1.f, 2.f}};
+			if (game.money < game.placingPerson.price) {
+				game.isPlacingPerson = false;
+			}
+		}
+
+		bool personSelected = false;
+		for (int i = 0; i < game.people.size(); i++) {
+			game.people[i].selected = (controls.worldMouse.x > game.people[i].pos.z - game.people[i].size.z / 2.f && controls.worldMouse.x < game.people[i].pos.z + game.people[i].size.z / 2.f && controls.worldMouse.y > game.people[i].pos.x - game.people[i].size.x / 2.f && controls.worldMouse.y < game.people[i].pos.x + game.people[i].size.x / 2.f);
 		}
 
 		controls.mouseDown = true;
@@ -848,8 +969,10 @@ int main(void) {
 
 		glfwGetFramebufferSize(window, &width, &height);
 		ratio = width / (float)height;
-
-		game.tick(width, height);
+		game.d = 0.1;
+		for (int i = 0; i < 10; i++) {
+			game.tick(width, height);
+		}
 		vBuilder.buildThem(&game, width, height);
 		glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vertices[0]), &vertices[0], GL_STATIC_DRAW);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementbuffer);
