@@ -158,9 +158,9 @@ public:
 			damage = 2.f;
 			break;
 		case ENTITY_MONSTER:
-			speed = 0.3f;
+			speed = 0.2f;
 			u = 2.f;
-			health = 1.f;
+			health = 10.f;
 			reward = 20.f;
 			damage = 15.f;
 			break;
@@ -180,7 +180,7 @@ public:
 			break;
 		case ENTITY_TUNGSTEN_MAIDEN:
 			speed = 0.01f;
-			u = 4.f;
+			u = 5.f;
 			health = 5000.f;
 			reward = 1500.f;
 			damage = 99.f;
@@ -336,7 +336,7 @@ public:
 		{"", {{ENTITY_FAST, .5f}, {ENTITY_FAST, .5f}, {ENTITY_FAST, .5f}, {ENTITY_FAST, .5f}, {ENTITY_FAST, .5f}, {ENTITY_FAST, .5f}, {ENTITY_FAST, .5f}, {ENTITY_NORMAL, .5f}, {ENTITY_FAST, .5f}}},
 		{"iron maiden has alot of hp", {{ENTITY_MONSTER, 0.01f}, {ENTITY_NORMAL, 0.1f}, {ENTITY_FAST, 0.1f}, {ENTITY_FAST, 0.1f}, {ENTITY_MONSTER, 0.01f}, {ENTITY_MONSTER, 0.01f}, {ENTITY_MONSTER, 0.01f}, {ENTITY_IRON_MAIDEN, 0.01f}}},
 		{"admin after this", {}},
-		{"admin", {{ENTITY_ADMIN, 0.1f}}}
+		{"admin", {{ENTITY_TUNGSTEN_MAIDEN, 0.1f}}}
 	};
 	int waveNumber = 0;
 	float d = 1.0;
@@ -380,9 +380,13 @@ public:
 			if (people[i].shootDelayTimer <= 0.f) {
 				people[i].shootDelayTimer = people[i].shootDelay;
 				if (entities.size() > 0) {
-					projectiles.push_back(people[i].projectile);
-					projectiles[projectiles.size() - 1].pos = people[i].pos;
-					projectiles[projectiles.size() - 1].velocity = vec3Subtract(entities[0].pos, people[i].pos).normalise(projectiles[projectiles.size() - 1].speed);
+					int closestEntityIndex = getClosestEntity(people[i].pos, people[i].range);
+					if (closestEntityIndex != -1) {
+						projectiles.push_back(people[i].projectile);
+						projectiles[projectiles.size() - 1].pos = people[i].pos;
+						projectiles[projectiles.size() - 1].pos.y += 1.f;
+						projectiles[projectiles.size() - 1].velocity = vec3Subtract(entities[closestEntityIndex].pos, people[i].pos).normalise(projectiles[projectiles.size() - 1].speed);
+					}
 				}
 			} else {
 				people[i].shootDelayTimer -= d / 60.f;
@@ -471,6 +475,18 @@ public:
 	void showMessage(string text, float time) {
 		message = text;
 		messageTime = time;
+	}
+	int getClosestEntity(Vec3 pos, float searchRadius) {
+		int nearestIndex = -1;
+		float nearestDist;
+		for (int i = 0; i < entities.size(); i++) {
+			float currentDistance = distance3D(entities[i].pos, pos);
+			if ((nearestIndex == -1 || currentDistance < nearestDist) && currentDistance <= searchRadius) {
+				nearestIndex = i;
+				nearestDist = currentDistance;
+			}
+		}
+		return nearestIndex;
 	}
 };
 Vec2 getCharacterCoords(char c) {
