@@ -62,6 +62,22 @@ public:
 		y = asdy;
 	}
 };
+bool lineCircleIntersects(float ax, float ay, float bx, float by, float cx, float cy, float r) {
+	ax -= cx;
+	ay -= cy;
+	bx -= cx;
+	by -= cy;
+	float a = pow(bx - ax, 2.f) + pow(by - ay, 2.f);
+	float b = 2.f*(ax*(bx - ax) + ay*(by - ay));
+	float c = pow(ax, 2.f) + pow(ay, 2.f) - pow(r, 2.f);
+	float disc = pow(b, 2.f) - 4.f*a*c;
+	if(disc <= 0.f) return false;
+	float sqrtdisc = sqrt(disc);
+	float t1 = (-b + sqrtdisc)/(2.f*a);
+	float t2 = (-b - sqrtdisc)/(2.f*a);
+	if((0.f < t1 && t1 < 1.f) || (0.f < t2 && t2 < 1.f)) return true;
+	return false;
+}
 class Controls {
 	public:
 	   bool w = false;
@@ -160,7 +176,7 @@ public:
 		case ENTITY_MONSTER:
 			speed = 0.2f;
 			u = 2.f;
-			health = 10.f;
+			health = 4.f;
 			reward = 20.f;
 			damage = 15.f;
 			break;
@@ -206,6 +222,7 @@ float distance3D(Vec3 p1, Vec3 p2) {
 }
 class Level {
 public:
+	float pathWidth = 0.4f;
 	vector<Vec3> path = {{2.f, 1.f, 0.f}, {5.f, 1.f, 2.f}, {2.f, 1.f, 8.f}, {4.f, 1.f, 8.f}, {4.f, 1.f, 3.f}, {1.f, 1.f, 3.f}, {1.f, 1.f, 9.f}, {6.f, 1.f, 9.f}, {6.f, 1.f, 3.f}, {9.f, 1.f, 3.f}, {9.f, 1.f, 10.f}};
 };
 #define PERSON_ARCHER 0
@@ -266,14 +283,14 @@ class Person {
 		switch (tyape) {
 		case PERSON_ARCHER:
 			price = 100.f;
-			range = 5.f;
+			range = 3.f;
 			shootDelay = 0.8f;
 			projectile = {PROJECTILE_ARROW, {0.f, 2.f, 0.f}, {0.f, 0.f, 0.f}};
 			u = 0.f;
 			break;
 		case PERSON_CANNON:
 			price = 200.f;
-			range = 4.f;
+			range = 2.f;
 			shootDelay = 1.5f;
 			projectile = {PROJECTILE_CANNONBALL, {0.f, 2.f, 0.f}, {0.f, 0.f, 0.f}};
 			u = 1.f;
@@ -286,6 +303,26 @@ class Person {
 			u = 2.f;
 			break;
 		}
+	}
+	bool isPlacable(Level* level, vector<Person>* people) {
+		for (int i = 0; i < level->path.size() - 1; i++) {
+			if (lineCircleIntersects(level->path[i].x, level->path[i].z, level->path[i + 1].x, level->path[i + 1].z, pos.x, pos.z, (size.x + size.z) / 4.f + level->pathWidth / 2.f)) {
+				return false;
+			}
+		}
+		//lineCircleIntersects(0.f, 0.f, 10.f, 10.f, pos.z, pos.x, 0.5f)
+		for (int i = 0; i < people->size(); i++) {
+			if (
+				pos.x + size.x / 2.f > people[0][0].pos.x - people[0][0].size.x / 2.f && 
+				pos.x - size.x / 2.f < people[0][0].pos.x + people[0][0].size.x / 2.f &&
+				pos.y + size.y       > people[0][0].pos.y                             && 
+				pos.y                < people[0][0].pos.y + people[0][0].size.y       &&
+				pos.z + size.z / 2.f > people[0][0].pos.z - people[0][0].size.z / 2.f && 
+				pos.z - size.z / 2.f < people[0][0].pos.z + people[0][0].size.z / 2.f) {
+				return false;
+			}
+		}
+		return true;
 	}
 };
 Controls controls;
@@ -378,8 +415,8 @@ public:
 
 		for (int i = 0; i < people.size(); i++) {
 			if (people[i].shootDelayTimer <= 0.f) {
-				people[i].shootDelayTimer = people[i].shootDelay;
 				if (entities.size() > 0) {
+					people[i].shootDelayTimer = people[i].shootDelay;
 					int closestEntityIndex = getClosestEntity(people[i].pos, people[i].range);
 					if (closestEntityIndex != -1) {
 						projectiles.push_back(people[i].projectile);
@@ -606,7 +643,7 @@ public:
 		}
 		// point path
 		for (int i = 0; i < game->levels[game->activeLevel].path.size() - 1; i++) {
-			addPath(game->levels[game->activeLevel].path[i], game->levels[game->activeLevel].path[i + 1], 1.f, 0.f, 0.4f);
+			addPath(game->levels[game->activeLevel].path[i], game->levels[game->activeLevel].path[i + 1], 1.f, 0.f, game->levels[game->activeLevel].pathWidth);
 		}
 		// entities
 		for (Entity entity : game->entities) {
@@ -617,11 +654,14 @@ public:
 			addCube(person.pos.x - person.size.x / 2.f, person.pos.y, person.pos.z - person.size.z / 2.f, person.size.x, person.size.y, person.size.z, person.u, 2.f);
 			if (person.selected) {
 				addPlane(person.pos.x - person.range, person.pos.y + 0.1f, person.pos.z - person.range, person.range * 2.f, person.range * 2.f, 3.f, 7.f);
+				//addRect(0.5f, 0.5f, 0.2f, 0.2f, 0.)
 			}
 		}
 		if (game->isPlacingPerson) {
 			addCube(game->placingPerson.pos.x - game->placingPerson.size.x / 2.f, game->placingPerson.pos.y, game->placingPerson.pos.z - game->placingPerson.size.z / 2.f, game->placingPerson.size.x, game->placingPerson.size.y, game->placingPerson.size.z, game->placingPerson.u, 2.f);
-			addPlane(game->placingPerson.pos.x - game->placingPerson.range, game->placingPerson.pos.y + 0.1f, game->placingPerson.pos.z - game->placingPerson.range, game->placingPerson.range * 2.f, game->placingPerson.range * 2.f, 4.f, 7.f);
+			if (game->placingPerson.isPlacable(&game->levels[game->activeLevel], &game->people)) {
+				addPlane(game->placingPerson.pos.x - game->placingPerson.range, game->placingPerson.pos.y + 0.1f, game->placingPerson.pos.z - game->placingPerson.range, game->placingPerson.range * 2.f, game->placingPerson.range * 2.f, 4.f, 7.f);
+			}
 		}
 		//projectiles
 		for (Projectile projectile : game->projectiles) {
@@ -785,7 +825,7 @@ static void mouse_button_callback(GLFWwindow* window, int button, int action, in
     	//getting cursor position
     	glfwGetCursorPos(window, &xpos, &ypos);
 
-		if (game.isPlacingPerson && game.money >= game.placingPerson.price) {
+		if (game.isPlacingPerson && game.money >= game.placingPerson.price && game.placingPerson.isPlacable(&game.levels[game.activeLevel], &game.people)) {
 			game.people.push_back(game.placingPerson);
 			game.money -= game.placingPerson.price;
 			game.isPlacingPerson = false;
@@ -849,7 +889,6 @@ static void error_callback(int error, const char* description) {
 }
 
 int main(void) {
-	//getShaderText();
 	GLuint vertex_buffer, vertex_shader, fragment_shader, program;
 	GLint mvp_location, vpos_location, vtexcoord_location, vspace_location, texture1_location;
 
