@@ -182,14 +182,14 @@ public:
 			speed = 0.2f;
 			u = 2.f;
 			health = 4.f;
-			reward = 20.f;
+			reward = 80.f;
 			damage = 15.f;
 			break;
 		case ENTITY_ADMIN:
-			speed = 3.f;
+			speed = 1.5f;
 			u = 3.f;
 			health = 5.f;
-			reward = 312335.f;
+			reward = 5000.f;
 			damage = 2213.f;
 			break;
 		case ENTITY_IRON_MAIDEN:
@@ -203,21 +203,21 @@ public:
 			speed = 0.01f;
 			u = 5.f;
 			health = 1500.f;
-			reward = 1500.f;
+			reward = 2000.f;
 			damage = 99.f;
 			break;
 		case ENTITY_TWIN:
 			speed = 0.15f;
 			u = 7.f;
 			health = 3.f;
-			reward = 2.f;
+			reward = 10.f;
 			damage = 5.f;
 			break;
 		case ENTITY_GENERAL:
 			speed = 0.025f;
 			u = 8.f;
-			health = 330.f;
-			reward = 500.f;
+			health = 500.f;
+			reward = 3000.f;
 			damage = 509231589.f;
 			break;
 		}
@@ -235,16 +235,19 @@ float distance3D(Vec3 p1, Vec3 p2) {
 class Level {
 public:
 	float pathWidth = 0.6f;
-	vector<Vec3> path = {{2.f, 0.f, 0.f}, {5.f, 0.f, 2.f}, {2.f, 0.f, 8.f}, {4.f, 0.f, 8.f}, {4.f, 0.f, 3.f}, {1.f, 0.f, 3.f}, {1.f, 0.f, 9.f}, {6.f, 0.f, 9.f}, {6.f, 0.f, 3.f}, {9.f, 0.f, 3.f}, {9.f, 0.f, 10.f}};
+	vector<Vec3> path = {{2.000000f, 0.000000f, 0.000000f}, {5.000000f, 0.000000f, 2.000000f}, {2.000000f, 0.000000f, 8.000000f}, {4.000000f, 0.000000f, 8.000000f}, {4.000000f, 0.000000f, 3.000000f}, {1.000000f, 0.000000f, 3.000000f}, {1.000000f, 0.000000f, 9.000000f}, {6.000000f, 0.000000f, 9.000000f}, {6.000000f, 0.000000f, 3.000000f}, {9.000000f, 0.000000f, 3.000000f}, {9.000000f, 0.000000f, 10.000000f}, {14.007325f, 0.000000f, 10.099076f}, {15.940928f, 0.000000f, 10.099076f}, {17.275387f, 0.000000f, 9.935673f}, {18.446444f, 0.000000f, 9.282061f}, {18.909418f, 0.000000f, 7.974836f}, {18.065170f, 0.000000f, 7.239522f}, {16.512840f, 0.000000f, 7.076118f}, {15.341784f, 0.000000f, 6.994416f}, {14.034558f, 0.000000f, 6.967182f}, {13.054140f, 0.000000f, 6.939949f}, {13.026906f, 0.000000f, 4.053161f}, {13.026906f, 0.000000f, 1.629347f}, {15.423485f, 0.000000f, 1.493177f}, {16.676243f, 0.000000f, 1.547646f}, {17.547726f, 0.000000f, 2.174024f}, {18.228573f, 0.000000f, 2.691469f}, {18.909418f, 0.000000f, 3.236145f}, {19.753668f, 0.000000f, 3.426783f}, {20.652386f, 0.000000f, 3.372314f}, {21.796207f, 0.000000f, 3.454016f}, {22.749392f, 0.000000f, 3.454016f}, {23.593641f, 0.000000f, 3.317847f}, {24.328957f, 0.000000f, 2.882105f}, {24.546825f, 0.000000f, 2.065089f}, {24.111084f, 0.000000f, 1.275308f}, {23.185135f, 0.000000f, 0.812331f}, {22.449820f, 0.000000f, 1.084670f}, {22.286417f, 0.000000f, 1.738283f}, {22.286417f, 0.000000f, 2.364661f}, {22.313650f, 0.000000f, 3.835290f}, {22.313650f, 0.000000f, 5.659958f}, {22.177483f, 0.000000f, 10.888858f}};
 };
 #define PERSON_ARCHER 0
 #define PERSON_CANNON 1
 #define PERSON_TURRET 2
 #define PERSON_TANK 3
+#define PERSON_GOLD_MINE 4
 
 #define PROJECTILE_ARROW 0
 #define PROJECTILE_CANNONBALL 1
 #define PROJECTILE_BULLET 2
+#define PROJECTILE_MISSILE 3
+#define PROJECTILE_SPARK 4
 class Projectile {
 	public:
 	Vec3 pos{0.f, 0.f, 0.f};
@@ -253,30 +256,47 @@ class Projectile {
 	int type;
 	float age = 0.f;
 	float damage = 1.f;
+	float health = 1.f;
 	float u;
 	float speed = 0.1f;
+	bool guided = false;
 	Projectile(int tyape, Vec3 asdpos, Vec3 asdvelocity) {
 		type = tyape;
 		pos = asdpos;
 		velocity = asdvelocity;
 		switch (type) {
 		case PROJECTILE_ARROW:
-			damage = 1.f;
+			damage = 1.3f;
 			u = 0.f;
 			speed = 1.143f;
 			break;
 		case PROJECTILE_CANNONBALL:
-			damage = 4.f;
+			damage = 3.5f;
 			u = 1.f;
 			speed = 0.8f;
 			break;
 		case PROJECTILE_BULLET:
-			damage = 2.f;
+			damage = 1.5f;
 			u = 2.f;
 			speed = 1.3f;
 			break;
+		case PROJECTILE_MISSILE:
+			damage = 6.f;
+			u = 3.f;
+			speed = 0.5f;
+			break;
+		case PROJECTILE_SPARK:
+			damage = 0.f;
+			u = 3.f;
+			speed = 0.01f;
+			health = 10000000.f;
+			break;
 		}
 	}
+};
+struct PersonUpgrade {
+	string name;
+	float price;
 };
 class PersonStats {
 	public:
@@ -284,15 +304,18 @@ class PersonStats {
 	float shootDelay = 0.f;
 	float range = 5.f;
 	float price;
+	int level = 0;
+	string levelText = "default";
 	Vec3 size{1.f, 1.f, 1.f};
 	PersonStats(int type) {
 		switch (type) {
 		case PERSON_ARCHER:
-			price = 31.f;
+			price = 60.f;
 			range = 3.f;
-			shootDelay = 0.8f;
+			shootDelay = 0.85f;
 			projectile = {PROJECTILE_ARROW, {0.f, 1.f, 0.f}, {0.f, 0.f, 0.f}};
 			size = {0.6f, 1.7f, 0.6f};
+			break;
 		case PERSON_CANNON:
 			price = 150.f;
 			range = 2.f;
@@ -301,19 +324,26 @@ class PersonStats {
 			size = {0.5f, 0.1f, 0.5f};
 			break;
 		case PERSON_TURRET:
-			price = 501.f;
+			price = 700.f;
 			range = 10.f;
-			shootDelay = 0.2f;
+			shootDelay = 0.3f;
 			projectile = {PROJECTILE_BULLET, {0.f, 1.f, 0.f}, {0.f, 0.f, 0.f}};
 			size = {0.7f, 0.6f, 0.7f};
 			break;
 		case PERSON_TANK:
-			price = 750.f;
+			price = 2000.f;
 			range = 16.f;
 			shootDelay = 0.4f;
-			projectile = {PROJECTILE_CANNONBALL, {0.f, 1.f, 0.f}, {0.f, 0.f, 0.f}};
-			projectile.damage = 5.f;
+			projectile = {PROJECTILE_MISSILE, {0.f, 1.f, 0.f}, {0.f, 0.f, 0.f}};
+			projectile.damage = 8.f;
 			size = {3.5f, 2.5f, 3.5f};
+			break;
+		case PERSON_GOLD_MINE:
+			price = 850.f;
+			range = 3.f;
+			shootDelay = 0.4f;
+			projectile = {PROJECTILE_MISSILE, {0.f, 1.f, 0.f}, {0.f, 0.f, 0.f}};
+			size = {3.f, 2.5f, 3.f};
 			break;
 		}
 	}
@@ -327,19 +357,19 @@ class Person {
 	float yRotation = 0.f;
 	float u;
 	bool selected = false;
-	unsigned int level = 0U;
 	Person(int tyape, Vec3 asdpos) {
 		type = tyape;
 		stats = {type};
 		pos = asdpos;
 	}
 	bool isPlacable(Level* level, vector<Person>* people) {
-		for (int i = 0; i < level->path.size() - 1; i++) {
+		if (pos.x < 0.f || pos.x > 25.f || pos.z < 0.f || pos.z > 25.f) return false;
+		for (int i = 0; i < (int)level->path.size() - 1; i++) {
 			if (lineCircleIntersects(level->path[i].x, level->path[i].z, level->path[i + 1].x, level->path[i + 1].z, pos.x, pos.z, (stats.size.x + stats.size.z) / 4.f + level->pathWidth / 2.f)) {
 				return false;
 			}
 		}
-		for (int i = 0; i < people->size(); i++) {
+		for (int i = 0; i < (int)people->size(); i++) {
 			if (
 				pos.x + stats.size.x / 2.f > people[0][i].pos.x - people[0][i].stats.size.x / 2.f && 
 				pos.x - stats.size.x / 2.f < people[0][i].pos.x + people[0][i].stats.size.x / 2.f &&
@@ -352,6 +382,21 @@ class Person {
 		}
 		return true;
 	}
+	vector<PersonUpgrade> getUpgrades() {
+		switch (type) {
+		case PERSON_ARCHER:
+			return {{"default", 0.f}, {"sharpened arrows", 100.f}, {"scope", 200.f}, {"crossbow", 500.f}};
+		case PERSON_CANNON:
+			return {{"default", 0.f}, {"shorter fuse", 175.f}, {"long barrel", 350.f}, {"missile launcher", 800.f}, {"op cannon", 500000.f}};
+		case PERSON_TURRET:
+			return {{"default", 0.f}, {"fast", 300.f}, {"mega fast", 500.f}, {"super fast", 700.f}};
+		case PERSON_TANK:
+			return {{"default", 0.f}, {"strong missiles", 700.f}, {"guided missiles not working", 1220.f}, {"coming soon", 70032436598263495.f}}; // move around
+		case PERSON_GOLD_MINE:
+			return {{"default", 0.f}, {"faster minecart", 300.f}, {"electric minecart", 420.f}, {"mega fast minecart", 587.f}};
+		}
+		return {{"default", 0.f}, {"level 1", 100.f}, {"level 2", 200.f}, {"level 3", 300.f}};
+	}
 };
 Controls controls;
 float roundToPlace(float x, float place) {
@@ -360,6 +405,7 @@ float roundToPlace(float x, float place) {
 struct EntitySpawningInfo {
 	int id;
 	float delay;
+	int count;
 };
 class Wave {
 	public:
@@ -382,10 +428,16 @@ public:
 	float entitySpawnDelay = 0.f;
 	Person placingPerson{PERSON_ARCHER, {2.f, 0.f, 2.f}};
 	bool isPlacingPerson = false;
-	float money = 3030.f;
-	bool tankUnlocked = false;
+	float money = 300.f;
+	bool tankUnlocked = !false;
 	Wave waveCurrentlySpawning{"", {}};
-	Wave waves[30] = {
+	vector<Wave> waves = {
+		{"", {{ENTITY_NORMAL, 0.3f, 10}}},
+		{"", {{ENTITY_NORMAL, 0.25f, 15}}},
+		{"", {{ENTITY_NORMAL, 0.3f, 30}}},
+		{"", {{ENTITY_NORMAL, 0.2f, 15}, {ENTITY_FAST, 0.3f, 10}}},
+		{"", {{ENTITY_NORMAL, 0.15f, 30}}},
+		{"", {{ENTITY_NORMAL, 0.15f, 10}, {ENTITY_FAST, 0.2f, 10}, {ENTITY_NORMAL, 0.2f, 20}}},
 		{"", {{ENTITY_NORMAL, 0.2f}, {ENTITY_NORMAL, .2f}, {ENTITY_NORMAL, .2f}, {ENTITY_NORMAL, .2f}, {ENTITY_NORMAL, .2f}, {ENTITY_NORMAL, .2f}, {ENTITY_NORMAL, .2f}, {ENTITY_NORMAL, .2f}}},
 		{"", {{ENTITY_NORMAL, 0.1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .1f}}},
 		{"", {{ENTITY_NORMAL, 0.05f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .05f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .05f}, {ENTITY_NORMAL, .1f}, {ENTITY_NORMAL, .05f}, {ENTITY_NORMAL, .1f}}},
@@ -427,18 +479,19 @@ public:
 	
 	void tick(int width, int height) {
 		if (controls.w) camera.pos.z -= 0.1f * d;
-		if (controls.a) camera.pos.x -= 0.1f * d;
 		if (controls.s) camera.pos.z += 0.1f * d;
-		if (controls.d) camera.pos.x += 0.1f * d;
-		if (controls.up) camera.rotation.x += 0.01f * d;
-		if (controls.down) camera.rotation.x -= 0.01f * d;
-		if (controls.left) camera.rotation.y -= 0.01f * d;
-		if (controls.right) camera.rotation.y += 0.01f * d;
+		if (controls.up) camera.pos.y += 0.1f * d;
+		if (controls.down) camera.pos.y -= 0.1f * d;
+		if (controls.left) camera.pos.x -= 0.1f * d;
+		if (controls.right)  camera.pos.x += 0.1f * d;
+		if (camera.pos.y < 0.1f) {
+			camera.pos.y = 0.1f;
+		}
 		controls.previousClipMouse = controls.clipMouse;
 		controls.clipMouse.x = (controls.mouse.x / (float)width - 0.5f) * 2.f;
 		controls.clipMouse.y = (0.5f - controls.mouse.y / (float)height) * 2.f;
-		controls.worldMouse.x = controls.clipMouse.x * 12.5f * (float)width / (float)height + 12.5f;
-		controls.worldMouse.y = controls.clipMouse.y * 12.5f + 12.5f;
+		controls.worldMouse.x = controls.clipMouse.x * (camera.pos.z) * (float)width / (float)height + camera.pos.x;
+		controls.worldMouse.y = controls.clipMouse.y * (camera.pos.z) + camera.pos.y;
 
 		messageTime -= d / 60.f;
 
@@ -449,7 +502,10 @@ public:
 		if (entitySpawnDelay <= 0.f && waveCurrentlySpawning.entities.size() > 0) {
 			entities.push_back({waveCurrentlySpawning.entities[0].id, levels[activeLevel].path[0]});
 			entitySpawnDelay = waveCurrentlySpawning.entities[0].delay;
-			waveCurrentlySpawning.entities.erase(waveCurrentlySpawning.entities.begin());
+			waveCurrentlySpawning.entities[0].count--;
+			if (waveCurrentlySpawning.entities[0].count <= 0) {
+				waveCurrentlySpawning.entities.erase(waveCurrentlySpawning.entities.begin());
+			}
 		} else {
 			entitySpawnDelay -= d / 60.f;
 		};
@@ -458,31 +514,41 @@ public:
 			placingPerson.pos.z = controls.worldMouse.x;
 		}
 
-		for (int i = 0; i < people.size(); i++) {
+		for (int i = 0; i < (int)people.size(); i++) {
 			if (people[i].shootDelayTimer <= 0.f) {
-				if (entities.size() > 0) {
+				if (entities.size() > 0 || people[i].type == PERSON_GOLD_MINE) {
 					people[i].shootDelayTimer = people[i].stats.shootDelay;
-					int closestEntityIndex = getClosestEntity(people[i].pos, people[i].stats.range);
-					if (closestEntityIndex != -1) {
-						people[i].yRotation = atan2(entities[closestEntityIndex].pos.z - people[i].pos.z, entities[closestEntityIndex].pos.x - people[i].pos.x);
-						projectiles.push_back(people[i].stats.projectile);
-						projectiles[projectiles.size() - 1].pos = people[i].pos;
-						projectiles[projectiles.size() - 1].pos.y += 1.f;
-						projectiles[projectiles.size() - 1].velocity = vec3Subtract(entities[closestEntityIndex].pos, people[i].pos).normalise(projectiles[projectiles.size() - 1].speed);
+					if (people[i].type == PERSON_GOLD_MINE) {
+						money += people[i].stats.projectile.damage;
+					} else {
+						int closestEntityIndex = getClosestEntity(people[i].pos, people[i].stats.range);
+						if (closestEntityIndex != -1) {
+							people[i].yRotation = atan2(entities[closestEntityIndex].pos.z - people[i].pos.z, entities[closestEntityIndex].pos.x - people[i].pos.x);
+							projectiles.push_back(people[i].stats.projectile);
+							Vec3 projectileVel = vec3Subtract(entities[closestEntityIndex].pos, people[i].pos).normalise(projectiles[projectiles.size() - 1].speed);
+							projectiles[projectiles.size() - 1].pos = people[i].pos;
+							projectiles[projectiles.size() - 1].pos.y += 1.f;
+							projectiles[projectiles.size() - 1].velocity = projectileVel;
+							projectiles.push_back({PROJECTILE_SPARK, vec3Add(people[i].pos, {0.f, 1.f, 0.f}), projectileVel.normalise(0.01f)});
+						}
 					}
 				}
 			} else {
 				people[i].shootDelayTimer -= d / 60.f;
 			}
 		}
-		for (int i = projectiles.size() - 1; i >= 0; i--) {
+		for (int i = (int)projectiles.size() - 1; i >= 0; i--) {
+			if (projectiles[i].guided) {
+				int closestEntityIndex = getClosestEntity(projectiles[i].pos, 10.f);
+				if (closestEntityIndex != -1) projectiles[i].velocity = vec3Subtract(entities[closestEntityIndex].pos, projectiles[i].pos).normalise(projectiles[i].speed);
+			}
 			projectiles[i].pos = vec3Add(projectiles[i].pos, vec3Mul(projectiles[i].velocity, d));
 			projectiles[i].age += d / 60.f;
-			if (projectiles[i].age > 5.f) {
+			if (projectiles[i].age > 5.f || (projectiles[i].type == PROJECTILE_SPARK && projectiles[i].age > 0.05f)) {
 				projectiles.erase(projectiles.begin() + i);
 				continue;
 			}
-			for (int j = 0; j < entities.size(); j++) {
+			for (int j = 0; j < (int)entities.size(); j++) {
 				if (
 					projectiles[i].pos.x - projectiles[i].size.x / 2.f < entities[j].pos.x + entities[j].size.x / 2.f &&
 					projectiles[i].pos.x + projectiles[i].size.x / 2.f > entities[j].pos.x - entities[j].size.x / 2.f &&
@@ -491,7 +557,7 @@ public:
 					projectiles[i].pos.z - projectiles[i].size.z / 2.f < entities[j].pos.z + entities[j].size.z / 2.f &&
 					projectiles[i].pos.z + projectiles[i].size.z / 2.f > entities[j].pos.z - entities[j].size.z / 2.f
 				) {
-					projectiles.erase(projectiles.begin() + i);
+					projectiles[i].health -= 1.f;
 					entities[j].health -= projectiles[i].damage;
 					if (entities[j].health <= 0.f) {
 						money += entities[j].reward;
@@ -502,25 +568,28 @@ public:
 							}
 						} else if (entities[j].type == ENTITY_TWIN) {
 							for (int k = 0; k < 2; k++) {
-								entities.push_back({ENTITY_FAST, {entities[j].pos.x + randFloat() * 1.f - 0.5f, entities[j].pos.y, entities[j].pos.z + randFloat() * 1.f - 0.5f}});
+								entities.push_back({ENTITY_FAST, {entities[j].pos.x + randFloat() * 0.4f - 0.2f, entities[j].pos.y, entities[j].pos.z + randFloat() * 0.4f - 0.2f}});
 								entities[entities.size() - 1].targetPoint = entities[j].targetPoint;
 							}
 						} else if (entities[j].type == ENTITY_GENERAL) tankUnlocked = true;
-						if (waves[waveNumber].message.length() > 0 && entities.size() == 1 && waveCurrentlySpawning.entities.size() == 0) {
-							showMessage(waves[waveNumber].message, 1.5f);
+						if (getWave(waveNumber).message.length() > 0 && entities.size() == 1 && waveCurrentlySpawning.entities.size() == 0) {
+							showMessage(getWave(waveNumber).message, 1.5f);
 						}
 					};
+					if (projectiles[i].health <= 0.f) {
+						projectiles.erase(projectiles.begin() + i);
+					}
 					break;
 				}
 			}
 		}
-		for (int i = entities.size() - 1; i >= 0; i--) {
+		for (int i = (int)entities.size() - 1; i >= 0; i--) {
 			bool die = entities[i].health <= 0.f;
 			Vec3 targetPoint = levels[activeLevel].path[entities[i].targetPoint];
 			float distanceToTargetPoint = distance3D(entities[i].pos, targetPoint);
 			if (distanceToTargetPoint < entities[i].speed * d) {
 				entities[i].targetPoint++;
-				if (entities[i].targetPoint >= levels[activeLevel].path.size()) {
+				if (entities[i].targetPoint >= (int)levels[activeLevel].path.size()) {
 					health -= entities[i].damage;
 					die = true;
 				}
@@ -529,7 +598,7 @@ public:
 			}
 			float xDelta = (targetPoint.x - entities[i].pos.x) / distanceToTargetPoint * entities[i].speed;
 			float zDelta = (targetPoint.z - entities[i].pos.z) / distanceToTargetPoint * entities[i].speed;
-			entities[i].yRotation = lerp(entities[i].yRotation, atan2(zDelta, xDelta), 1.f - pow(0.001, d));
+			entities[i].yRotation = lerp(entities[i].yRotation, atan2(zDelta, xDelta), 0.01);
 			entities[i].pos.x += xDelta * d;
 			entities[i].pos.y += (targetPoint.y - entities[i].pos.y) / distanceToTargetPoint * entities[i].speed * d;
 			entities[i].pos.z += zDelta * d;
@@ -565,7 +634,7 @@ public:
 	int getClosestEntity(Vec3 pos, float searchRadius) {
 		int nearestIndex = -1;
 		float nearestDist;
-		for (int i = 0; i < entities.size(); i++) {
+		for (int i = 0; i < (int)entities.size(); i++) {
 			float currentDistance = distance3D(entities[i].pos, pos);
 			if ((nearestIndex == -1 || currentDistance < nearestDist) && currentDistance <= searchRadius) {
 				nearestIndex = i;
@@ -573,6 +642,83 @@ public:
 			}
 		}
 		return nearestIndex;
+	}
+	Wave getWave(int number) {
+		if (number < (int)waves.size()) {
+			return waves[number];
+		} else {
+			Wave wave = {"", {}};
+			for (int i = 0; i < number; i++) {
+				if (number < 100) {
+					wave.entities.push_back({i % 3 == 0 ? ENTITY_MONSTER : (i % 3 == 1 ? ENTITY_TWIN : ENTITY_IRON_MAIDEN), 0.05f});
+				} else {
+					wave.entities.push_back({ENTITY_GENERAL, 0.05f});
+				}
+			}
+			return wave;
+		}
+	}
+	void upgradePerson(Person* person) {
+		vector<PersonUpgrade> upgrades = person->getUpgrades();
+		if (person->stats.level > (int)upgrades.size() - 1) return;
+		if (money >= upgrades[person->stats.level + 1].price) {
+			money -= upgrades[person->stats.level + 1].price;
+			person->stats.level++;
+			switch (person->type) {
+			case PERSON_ARCHER://sharpened arrows: go through many, scope: more range, crossbow: faster and damage
+				if (person->stats.level == 1) {
+					person->stats.projectile.health = 5.f;
+					person->stats.projectile.damage *= 2.f;
+				} else if (person->stats.level == 2) {
+					person->stats.range *= 2.f;
+				} else if (person->stats.level == 3) {
+					person->stats.shootDelay = 0.4f;
+					person->stats.projectile.damage = 2.f;
+					person->stats.range *= 1.1f;
+				}
+				break;
+			case PERSON_CANNON: // shorter fuse: faster, long barrel: faster cannonballs more range, missile launcher: missiles
+				if (person->stats.level == 1) {
+					person->stats.shootDelay = 1.1f;
+				} else if (person->stats.level == 2) {
+					person->stats.range *= 1.3f;
+					person->stats.shootDelay *= 0.8f;
+				} else if (person->stats.level == 3) {
+					person->stats.range *= 2.f;
+					person->stats.projectile = {PROJECTILE_MISSILE, {0.f, 0.f, 0.f}, {0.f, 0.f, 0.f}};
+				} else if (person->stats.level == 4) {
+					person->stats.shootDelay = 0.0f;
+				}
+				break;
+			case PERSON_TURRET: // mega fast: fast
+				if (person->stats.level == 1) {
+					person->stats.shootDelay *= 0.8f;
+				} else if (person->stats.level == 2) {
+					person->stats.shootDelay *= 0.8f;
+				} else if (person->stats.level == 3) {
+					person->stats.shootDelay *= 0.8f;
+				}
+				break;
+			case PERSON_TANK: // them
+				if (person->stats.level == 1) {
+					person->stats.projectile.damage *= 1.3;
+				} else if (person->stats.level == 2) {
+					person->stats.projectile.guided = true;
+				} else if (person->stats.level == 3) {
+					person->stats.shootDelay *= 0.008f;
+				}
+				break;
+			case PERSON_GOLD_MINE: // them
+				if (person->stats.level == 1) {
+					person->stats.shootDelay *= 0.8f;
+				} else if (person->stats.level == 2) {
+					person->stats.shootDelay *= 0.8f;
+				} else if (person->stats.level == 3) {
+					person->stats.shootDelay *= 0.8f;
+				}
+				break;
+			}
+		}
 	}
 };
 Vec2 getCharacterCoords(char c) {
@@ -759,26 +905,43 @@ class Mesh {
 		}
 		Mesh(string path) {
 			objFile obj{path};
-			for (int i = 0; i < obj.vertices.size(); i++) {
+			for (int i = 0; i < (int)obj.vertices.size(); i++) {
 				vertices.push_back({obj.vertices[i].x, obj.vertices[i].y, obj.vertices[i].z, obj.texcoords[i].x, obj.texcoords[i].y, 1.f});
 			}
-			for (int i = 0; i < obj.faces.size(); i++) {
+			for (int i = 0; i < (int)obj.faces.size(); i++) {
 				indices.insert(indices.end(), obj.faces[i].begin(), obj.faces[i].end());
 			}
 		}
 };
+struct personButton {
+	int type;
+	float u;
+	float v;
+};
+vector<personButton> personButtons = {
+	{PERSON_ARCHER, 0.f, 2.f},
+	{PERSON_CANNON, 1.f, 2.f},
+	{PERSON_TURRET, 2.f, 2.f},
+	{PERSON_TANK, 3.f, 2.f},
+	{PERSON_GOLD_MINE, 4.f, 2.f}
+};
 class GameStateVertexBuilder {
 public:
-	Mesh turretMesh{"resources/turret.obj"};
-	Mesh cannonMesh{"resources/cannon.obj"};
-	Mesh archerMesh{"resources/archer.obj"};
-	Mesh tankMesh{"resources/tank.obj"};
+	Mesh turretMesh{"resources/model/person/turret.obj"};
+	Mesh cannonMesh{"resources/model/person/cannon.obj"};
+	Mesh archerMesh{"resources/model/person/archer.obj"};
+	Mesh tankMesh{"resources/model/person/tank.obj"};
+	Mesh goldMineMesh{"resources/model/person/goldmine.obj"};
 
-	Mesh normalMesh{"resources/normal.obj"};
-	Mesh fastMesh{"resources/fast.obj"};
-	Mesh monsterMesh{"resources/monster.obj"};
-	Mesh generalMesh{"resources/general.obj"};
-	Mesh ironMaidenMesh{"resources/ironMaidenMesh.obj"};
+	Mesh normalMesh{"resources/model/entity/normal.obj"};
+	Mesh fastMesh{"resources/model/entity/fast.obj"};
+	Mesh monsterMesh{"resources/model/entity/monster.obj"};
+	Mesh generalMesh{"resources/model/entity/general.obj"};
+	Mesh ironMaidenMesh{"resources/model/entity/ironmaiden.obj"};
+
+	Mesh missileMesh{"resources/model/projectile/missile.obj"};
+
+	Mesh planeMesh{"resources/model/plane.obj"};
 
 	GameState* game;
 	GameStateVertexBuilder(GameState* gam) {
@@ -793,7 +956,7 @@ public:
 			}
 		}
 		// point path
-		for (int i = 0; i < game->levels[game->activeLevel].path.size() - 1; i++) {
+		for (int i = 0; i < (int)game->levels[game->activeLevel].path.size() - 1; i++) {
 			addPath(game->levels[game->activeLevel].path[i], game->levels[game->activeLevel].path[i + 1], 1.f, 0.f, game->levels[game->activeLevel].pathWidth);
 		}
 		// entities
@@ -828,28 +991,53 @@ public:
 		}
 		//projectiles
 		for (Projectile projectile : game->projectiles) {
-			addPath(projectile.pos, vec3Add(projectile.pos, projectile.velocity), projectile.u, 6.f, 0.1f);
+			switch (projectile.type) {
+			case PROJECTILE_MISSILE:
+				addMesh(missileMesh, projectile.pos, {1.f, 1.f, 1.f}, atan2(projectile.velocity.z, projectile.velocity.x), {3.f, 6.f});
+				break;
+			case PROJECTILE_SPARK:
+				addMesh(planeMesh, vec3Add(projectile.pos, projectile.velocity.normalise(0.7f)), {.3f, .3f, .3f}, atan2(projectile.velocity.z, projectile.velocity.x), {6.f, 7.f});
+				break;
+			default:
+				addPath(projectile.pos, vec3Add(projectile.pos, projectile.velocity), projectile.u, 6.f, 0.1f);
+			}
 		}
 
 
 		// clip space: smaller z is in front
 
 		addText("HEALTH: " + to_string((int)game->health), -0.67f, 0.88f, 0.1f, 0.07f, 0.8f);
-		addText("WAVE " + to_string(game->waveNumber) + "/" + to_string((int)(sizeof(game->waves) / sizeof(game -> waves[0]))), -0.3f, -0.97f, 0.1f, 0.07f, 0.8f);
+		addText("WAVE " + to_string(game->waveNumber), -0.3f, -0.97f, 0.1f, 0.07f, 0.8f);
 		addText("$" + to_string((long long)game->money), -0.1f, 0.75f, 0.1f, 0.07f, 0.8f);
-		if (game->waveNumber == (int)(sizeof(game->waves) / sizeof(game -> waves[0])) && game->waveEnded() && game->health > 0.f) {
+		/*if (game->waveNumber == game->waves.size() && game->waveEnded() && game->health > 0.f) {
 			addText("YOU WON", -0.9f, -0.9f, 0.1f, 0.2f, 0.8f);
-		}
+		}*/
 		if (game->waveEnded()) {
 			addRect(0.7f, -0.95f, 0.2f, 0.25f, 0.25f, 0.f, 7.f);
 		} else {
 			addRect(0.7f, -0.95f, 0.2f, 0.25f, 0.25f, 1.f, 7.f);
 		}
-		addRect(-1.f, -1.f, 0.25f, 0.3f, 2.f, 2.f, 7.f);
-		addRect(-0.98f, 0.7f, 0.205f, 0.13f, 0.13f, 0.f, 2.f);
-		addRect(-0.83f, 0.7f, 0.205f, 0.13f, 0.13f, 1.f, 2.f);
-		addRect(-0.98f, 0.55f, 0.205f, 0.13f, 0.13f, 2.f, 2.f);
-		if (game->tankUnlocked) addRect(-0.83f, 0.55f, 0.205f, 0.13f, 0.13f, 3.f, 2.f);
+		for (Person person : game->people) {
+			if (person.selected) {
+				addRect(-0.65f, 0.55f, 0.2f, 0.2f, 0.2f, (person.stats.level <= (int)person.getUpgrades().size() - 1 && game->money >= person.getUpgrades()[person.stats.level + 1].price) ? 7.f : 8.f, 7.f);
+				vector<PersonUpgrade> upgrades = person.getUpgrades();
+				if (person.stats.level > (int)upgrades.size() - 2) {
+					addText("max upgrades", -0.43f, 0.6f, 0.1f, 0.04f, 0.8f);
+				} else {
+					addText(upgrades[person.stats.level + 1].name + ": $" + to_string((long long)upgrades[person.stats.level + 1].price), -0.43f, 0.6f, 0.1f, 0.04f, 0.8f);
+				}
+				addText("dps: " + to_string(person.stats.projectile.damage / person.stats.shootDelay), -0.65f, 0.38f, 0.1f, 0.04f, 0.8f);
+				break;
+			}
+		}
+		addRect(-1.f, -1.f, 0.25f, 0.3f, 2.f, 2.f, 7.f); // eople
+		for (int i = 0; i < (int)personButtons.size(); i++) {
+			float x = -0.98f + (0.15f * fmod(i, 2.f));
+			float y = 0.7f - floor(i / 2.f) * 0.15f;
+			addRect(x, y, 0.205f, 0.13f, 0.13f, personButtons[i].u, personButtons[i].v);
+			addText("$" + to_string((long long)(PersonStats){personButtons[i].type}.price), x, y - 0.02f, 0.1f, 0.03f, 0.7f);
+		}
+		//if (game->tankUnlocked) addRect(-0.83f, 0.55f, 0.205f, 0.13f, 0.13f, 3.f, 2.f);
 		if (game->messageTime > 0.f) {
 			addRect(-0.5f, -0.9f, 0.2f, 1.f, 0.5f, 2.f, 7.f);
 			addText(game->message, -0.45f, -0.6f, 0.1f, 0.07f, 0.7f);
@@ -877,6 +1065,9 @@ private:
 			break;
 		case PERSON_TANK:
 			addMesh(tankMesh, person->pos, {1.f, 1.f, 1.f}, person->yRotation, {3.f, 8.f});
+			break;
+		case PERSON_GOLD_MINE:
+			addMesh(goldMineMesh, person->pos, {1.f, 1.f, 1.f}, person->yRotation, {4.f, 8.f});
 			break;
 		default:
 			addCube(person->pos.x - person->stats.size.x / 2.f, person->pos.y, person->pos.z - person->stats.size.z / 2.f, person->stats.size.x, person->stats.size.y, person->stats.size.z, person->u, 2.f);
@@ -957,7 +1148,7 @@ private:
 	}
 	void addMesh(Mesh mesh, Vec3 position, Vec3 scale, float yRotation, Vec2 uvOffset) {
 		unsigned int end = vertices.size();
-		for (int i = 0; i < mesh.vertices.size(); i++) {
+		for (int i = 0; i < (int)mesh.vertices.size(); i++) {
 			if (yRotation != 0.f) {
 				float x = mesh.vertices[i].x;
 				float z = mesh.vertices[i].z;
@@ -973,7 +1164,7 @@ private:
 			mesh.vertices[i].u += uvOffset.x;
 			mesh.vertices[i].v += uvOffset.y;
 		}
-		for (int i = 0; i < mesh.indices.size(); i++) {
+		for (int i = 0; i < (int)mesh.indices.size(); i++) {
 			mesh.indices[i] += end;
 		}
 		vertices.insert(vertices.end(), mesh.vertices.begin(), mesh.vertices.end());
@@ -1003,7 +1194,7 @@ private:
 		addRect(x, y, z, w, w, u, v);
 	}
 	void addText(string text, float x, float y, float z, float w, float spacing) {
-		for (int i = 0; i < text.length(); i++) {
+		for (int i = 0; i < (int)text.length(); i++) {
 			addCharacter(text.at(i), x + (float)i * w * spacing, y, z, w*1.5);
 			z -= 0.001;
 		}
@@ -1026,6 +1217,15 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 		else if (key == GLFW_KEY_UP) controls.up = true;
 		else if (key == GLFW_KEY_DOWN) controls.down = true;
 		else if (key == GLFW_KEY_P) controls.p = true;
+		else if (key == GLFW_KEY_K) {
+			game.levels[game.activeLevel].path.push_back({controls.worldMouse.y, 0.f, controls.worldMouse.x});
+		} else if (key == GLFW_KEY_L) {
+			cout << "{";
+			for (Vec3 point : game.levels[game.activeLevel].path) {
+				cout << "{" << to_string(point.x) << "f, " << to_string(point.y) << "f, " << to_string(point.z) << "f}, ";
+			}
+			cout << "}" << endl;
+		};
 	}
 	else if (action == GLFW_RELEASE) {
 		if (key == GLFW_KEY_W) controls.w = false;
@@ -1045,46 +1245,44 @@ static void mouse_button_callback(GLFWwindow* window, int button, int action, in
     	double xpos, ypos;
     	//getting cursor position
     	glfwGetCursorPos(window, &xpos, &ypos);
+		if (controls.clipMouse.x > 0.7f && controls.clipMouse.y < -0.7f && controls.clipMouse.x < 0.95f && controls.clipMouse.y > -0.95f && game.waveEnded()) {
+			game.spawnWave(game.getWave(game.waveNumber));
+			game.waveNumber++;
+			return;
+		}
+		if (controls.clipMouse.x > -0.65f && controls.clipMouse.y < 0.8f && controls.clipMouse.x < -0.4f && controls.clipMouse.y > 0.55f) {
+			for (int i = 0; i < (int)game.people.size(); i++) {
+				if (game.people[i].selected) {
+					game.upgradePerson(&game.people[i]);
+					break;
+				}
+			}
+			return;
+		}
+		//PEOPLE PLACNG BUTTONS
+		for (int i = 0; i < (int)personButtons.size(); i++) {
+			float rectLeft = -0.98f + (0.15f * fmod(i, 2.f));
+			float rectRight = rectLeft + 0.13f;
+			float rectBottom = 0.7f - floor(i / 2.f) * 0.15f;
+			float rectTop = rectBottom + 0.13f;
+			if (controls.clipMouse.x > rectLeft && controls.clipMouse.x < rectRight && controls.clipMouse.y > rectBottom && controls.clipMouse.y < rectTop) {
+				game.isPlacingPerson = true;
+				game.placingPerson = {personButtons[i].type, {2.f, 0.f, 2.f}};
+				if (game.money < game.placingPerson.stats.price) {
+					game.isPlacingPerson = false;
+				}
+			}
+		}
 
 		if (game.isPlacingPerson && game.money >= game.placingPerson.stats.price && game.placingPerson.isPlacable(&game.levels[game.activeLevel], &game.people) && controls.clipMouse.x > -0.7f) {
 			game.people.push_back(game.placingPerson);
 			game.money -= game.placingPerson.stats.price;
 			game.isPlacingPerson = false;
 		};
-		if (controls.clipMouse.x > 0.7f && controls.clipMouse.y < -0.7f && controls.clipMouse.x < 0.95f && controls.clipMouse.y > -0.95f && game.waveEnded() && game.waveNumber < sizeof(game.waves) / sizeof(game.waves[0])) {
-			game.spawnWave(game.waves[game.waveNumber]);
-			game.waveNumber++;
-		}
-		//PEOPLE PLACNG BUTTONS
-		if (controls.clipMouse.x > -0.98f && controls.clipMouse.x < -0.85f && controls.clipMouse.y > 0.7f && controls.clipMouse.y < 0.83f) {
-			game.isPlacingPerson = true;
-			game.placingPerson = {PERSON_ARCHER, {2.f, 0.f, 2.f}};
-			if (game.money < game.placingPerson.stats.price) {
-				game.isPlacingPerson = false;
-			}
-		} else if (controls.clipMouse.x > -0.83f && controls.clipMouse.x < -0.7f && controls.clipMouse.y > 0.7f && controls.clipMouse.y < 0.83f) {
-			game.isPlacingPerson = true;
-			game.placingPerson = {PERSON_CANNON, {2.f, 0.f, 2.f}};
-			if (game.money < game.placingPerson.stats.price) {
-				game.isPlacingPerson = false;
-			}
-		} else if (controls.clipMouse.x > -0.98f && controls.clipMouse.x < -0.85f && controls.clipMouse.y > 0.55f && controls.clipMouse.y < 0.68f) {
-			game.isPlacingPerson = true;
-			game.placingPerson = {PERSON_TURRET, {2.f, 0.f, 2.f}};
-			if (game.money < game.placingPerson.stats.price) {
-				game.isPlacingPerson = false;
-			}
-		} else if (controls.clipMouse.x > -0.83f && controls.clipMouse.x < -0.7f && controls.clipMouse.y > 0.55f && controls.clipMouse.y < 0.68f && game.tankUnlocked) {
-			game.isPlacingPerson = true;
-			game.placingPerson = {PERSON_TANK, {2.f, 0.f, 2.f}};
-			if (game.money < game.placingPerson.stats.price) {
-				game.isPlacingPerson = false;
-			}
-		}
-
 		bool personSelected = false;
-		for (int i = 0; i < game.people.size(); i++) {
-			game.people[i].selected = (controls.worldMouse.x > game.people[i].pos.z - game.people[i].stats.size.z / 2.f && controls.worldMouse.x < game.people[i].pos.z + game.people[i].stats.size.z / 2.f && controls.worldMouse.y > game.people[i].pos.x - game.people[i].stats.size.x / 2.f && controls.worldMouse.y < game.people[i].pos.x + game.people[i].stats.size.x / 2.f);
+		for (int i = 0; i < (int)game.people.size(); i++) {
+			game.people[i].selected = !personSelected && (controls.worldMouse.x > game.people[i].pos.z - game.people[i].stats.size.z / 2.f && controls.worldMouse.x < game.people[i].pos.z + game.people[i].stats.size.z / 2.f && controls.worldMouse.y > game.people[i].pos.x - game.people[i].stats.size.x / 2.f && controls.worldMouse.y < game.people[i].pos.x + game.people[i].stats.size.x / 2.f);
+			if (game.people[i].selected) personSelected = true;
 		}
 
 		controls.mouseDown = true;
@@ -1236,8 +1434,10 @@ int main(void) {
 
 
 	stbi_image_free(bytes);
+	glfwWindowHint(GLFW_SAMPLES, 4);
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
+	glEnable(GL_MULTISAMPLE);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 
@@ -1249,8 +1449,8 @@ int main(void) {
 
 		glfwGetFramebufferSize(window, &width, &height);
 		ratio = width / (float)height;
-		game.d = 0.1;
-		for (int i = 0; i < 10; i++) {
+		game.d = 0.2;
+		for (int i = 0; i < 5; i++) {
 			game.tick(width, height);
 		}
 		vBuilder.buildThem(width, height);
