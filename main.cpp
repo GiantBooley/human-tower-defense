@@ -11,6 +11,7 @@
 #include <fstream>
 #include <vector>
 #include <string>
+#include <chrono>
 
 using namespace std;
 
@@ -182,14 +183,14 @@ public:
 			speed = 0.2f;
 			u = 2.f;
 			health = 4.f;
-			reward = 80.f;
+			reward = 30.f;
 			damage = 15.f;
 			break;
 		case ENTITY_ADMIN:
 			speed = 1.5f;
 			u = 3.f;
 			health = 5.f;
-			reward = 5000.f;
+			reward = 500.f;
 			damage = 2213.f;
 			break;
 		case ENTITY_IRON_MAIDEN:
@@ -203,21 +204,21 @@ public:
 			speed = 0.01f;
 			u = 5.f;
 			health = 1500.f;
-			reward = 2000.f;
+			reward = 800.f;
 			damage = 99.f;
 			break;
 		case ENTITY_TWIN:
 			speed = 0.15f;
 			u = 7.f;
 			health = 3.f;
-			reward = 10.f;
+			reward = 5.f;
 			damage = 5.f;
 			break;
 		case ENTITY_GENERAL:
 			speed = 0.025f;
 			u = 8.f;
 			health = 500.f;
-			reward = 3000.f;
+			reward = 2000.f;
 			damage = 509231589.f;
 			break;
 		}
@@ -269,11 +270,14 @@ class Projectile {
 			damage = 1.3f;
 			u = 0.f;
 			speed = 1.143f;
+			guided = true;
+			health = 1.f;
 			break;
 		case PROJECTILE_CANNONBALL:
 			damage = 3.5f;
 			u = 1.f;
-			speed = 0.8f;
+			speed = 0.6f;
+			health = 3.f;
 			break;
 		case PROJECTILE_BULLET:
 			damage = 1.5f;
@@ -284,6 +288,7 @@ class Projectile {
 			damage = 6.f;
 			u = 3.f;
 			speed = 0.5f;
+			health = 5.f;
 			break;
 		case PROJECTILE_SPARK:
 			damage = 0.f;
@@ -310,28 +315,28 @@ class PersonStats {
 	PersonStats(int type) {
 		switch (type) {
 		case PERSON_ARCHER:
-			price = 60.f;
+			price = 50.f;
 			range = 3.f;
 			shootDelay = 0.85f;
 			projectile = {PROJECTILE_ARROW, {0.f, 1.f, 0.f}, {0.f, 0.f, 0.f}};
 			size = {0.6f, 1.7f, 0.6f};
 			break;
 		case PERSON_CANNON:
-			price = 150.f;
+			price = 100.f;
 			range = 2.f;
 			shootDelay = 1.5f;
 			projectile = {PROJECTILE_CANNONBALL, {0.f, 1.f, 0.f}, {0.f, 0.f, 0.f}};
 			size = {0.5f, 0.1f, 0.5f};
 			break;
 		case PERSON_TURRET:
-			price = 700.f;
+			price = 500.f;
 			range = 10.f;
 			shootDelay = 0.3f;
 			projectile = {PROJECTILE_BULLET, {0.f, 1.f, 0.f}, {0.f, 0.f, 0.f}};
 			size = {0.7f, 0.6f, 0.7f};
 			break;
 		case PERSON_TANK:
-			price = 2000.f;
+			price = 1600.f;
 			range = 16.f;
 			shootDelay = 0.4f;
 			projectile = {PROJECTILE_MISSILE, {0.f, 1.f, 0.f}, {0.f, 0.f, 0.f}};
@@ -339,10 +344,11 @@ class PersonStats {
 			size = {3.5f, 2.5f, 3.5f};
 			break;
 		case PERSON_GOLD_MINE:
-			price = 850.f;
+			price = 650.f;
 			range = 3.f;
-			shootDelay = 0.4f;
+			shootDelay = 5.f;
 			projectile = {PROJECTILE_MISSILE, {0.f, 1.f, 0.f}, {0.f, 0.f, 0.f}};
+			projectile.damage = 10.f;
 			size = {3.f, 2.5f, 3.f};
 			break;
 		}
@@ -416,6 +422,8 @@ class Wave {
 			message = messaage;
 		}
 };
+float frameTime = 1.f;
+long long lastFrameTime = 0LL;
 class GameState {
 public:
 	vector<Entity> entities = {};
@@ -516,7 +524,7 @@ public:
 
 		for (int i = 0; i < (int)people.size(); i++) {
 			if (people[i].shootDelayTimer <= 0.f) {
-				if (entities.size() > 0 || people[i].type == PERSON_GOLD_MINE) {
+				if (!waveEnded() && (entities.size() > 0 || people[i].type == PERSON_GOLD_MINE)) {
 					people[i].shootDelayTimer = people[i].stats.shootDelay;
 					if (people[i].type == PERSON_GOLD_MINE) {
 						money += people[i].stats.projectile.damage;
@@ -563,7 +571,7 @@ public:
 						money += entities[j].reward;
 						if (entities[j].type == ENTITY_TUNGSTEN_MAIDEN) {
 							for (int k = 0; k < 5; k++) {
-								entities.push_back({ENTITY_IRON_MAIDEN, {entities[j].pos.x + randFloat() * 1.f - 0.5f, entities[j].pos.y, entities[j].pos.z + randFloat() * 1.f - 0.5f}});
+								entities.push_back({ENTITY_TUNGSTEN_MAIDEN, {entities[j].pos.x + randFloat() * 1.f - 0.5f, entities[j].pos.y, entities[j].pos.z + randFloat() * 1.f - 0.5f}});
 								entities[entities.size() - 1].targetPoint = entities[j].targetPoint;
 							}
 						} else if (entities[j].type == ENTITY_TWIN) {
@@ -598,7 +606,16 @@ public:
 			}
 			float xDelta = (targetPoint.x - entities[i].pos.x) / distanceToTargetPoint * entities[i].speed;
 			float zDelta = (targetPoint.z - entities[i].pos.z) / distanceToTargetPoint * entities[i].speed;
-			entities[i].yRotation = lerp(entities[i].yRotation, atan2(zDelta, xDelta), 0.01);
+			float rotation = atan2(zDelta, xDelta);
+			if (abs(entities[i].yRotation - rotation) > 0.1f * d) {
+				if (entities[i].yRotation < rotation) {
+					entities[i].yRotation += 0.1f * d;
+				} else if (entities[i].yRotation > rotation) {
+					entities[i].yRotation -= 0.1f * d;
+				}
+			} else {
+				entities[i].yRotation = rotation;
+			};
 			entities[i].pos.x += xDelta * d;
 			entities[i].pos.y += (targetPoint.y - entities[i].pos.y) / distanceToTargetPoint * entities[i].speed * d;
 			entities[i].pos.z += zDelta * d;
@@ -1009,6 +1026,7 @@ public:
 		addText("HEALTH: " + to_string((int)game->health), -0.67f, 0.88f, 0.1f, 0.07f, 0.8f);
 		addText("WAVE " + to_string(game->waveNumber), -0.3f, -0.97f, 0.1f, 0.07f, 0.8f);
 		addText("$" + to_string((long long)game->money), -0.1f, 0.75f, 0.1f, 0.07f, 0.8f);
+		addText("fps:" + to_string(1.f / (float)(frameTime)), -0.1f, 0.65f, 0.1f, 0.07f, 0.8f);
 		/*if (game->waveNumber == game->waves.size() && game->waveEnded() && game->health > 0.f) {
 			addText("YOU WON", -0.9f, -0.9f, 0.1f, 0.2f, 0.8f);
 		}*/
@@ -1138,8 +1156,8 @@ private:
 		vertices.insert(vertices.end(), {
 			{p1.x - zDiff - xDiff, p1.y + 0.01f, p1.z + xDiff - zDiff, u      , v + 1.f, 1.f},
 			{p1.x + zDiff - xDiff, p1.y + 0.01f, p1.z - xDiff - zDiff, u + 1.f, v + 1.f, 1.f},
-			{p2.x - zDiff + xDiff, p2.y + 0.01f, p2.z + xDiff + zDiff, u      , v      , 1.f},
-			{p2.x + zDiff + xDiff, p2.y + 0.01f, p2.z - xDiff + zDiff, u + 1.f, v      , 1.f}
+			{p2.x - zDiff + xDiff, p2.y + 0.02f, p2.z + xDiff + zDiff, u      , v      , 1.f},
+			{p2.x + zDiff + xDiff, p2.y + 0.02f, p2.z - xDiff + zDiff, u + 1.f, v      , 1.f}
 		});
 		indices.insert(indices.end(), {
 			0U+end, 1U+end, 2U+end,
@@ -1217,7 +1235,7 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 		else if (key == GLFW_KEY_UP) controls.up = true;
 		else if (key == GLFW_KEY_DOWN) controls.down = true;
 		else if (key == GLFW_KEY_P) controls.p = true;
-		else if (key == GLFW_KEY_K) {
+		/*else if (key == GLFW_KEY_K) {
 			game.levels[game.activeLevel].path.push_back({controls.worldMouse.y, 0.f, controls.worldMouse.x});
 		} else if (key == GLFW_KEY_L) {
 			cout << "{";
@@ -1225,7 +1243,7 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 				cout << "{" << to_string(point.x) << "f, " << to_string(point.y) << "f, " << to_string(point.z) << "f}, ";
 			}
 			cout << "}" << endl;
-		};
+		};*/
 	}
 	else if (action == GLFW_RELEASE) {
 		if (key == GLFW_KEY_W) controls.w = false;
@@ -1443,13 +1461,16 @@ int main(void) {
 
 
 	while (!glfwWindowShouldClose(window)) {
+		long long newFrameTime = (chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch())).count();
+		frameTime = (float)(newFrameTime - lastFrameTime) / 1000.f;
+		lastFrameTime = newFrameTime;
 		float ratio;
 		int width, height;
 		mat4x4 m, p, mvp;
 
 		glfwGetFramebufferSize(window, &width, &height);
 		ratio = width / (float)height;
-		game.d = 0.2;
+		game.d = 0.2 * (frameTime / (1.f / 60.f));
 		for (int i = 0; i < 5; i++) {
 			game.tick(width, height);
 		}
