@@ -1,8 +1,11 @@
 #include <glad/glad.h>
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
+#include <AL/al.h>
+#include <AL/alc.h>
 
 #include <linmath.h>
+#include <AudioFile.h>
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb/stb_image.h>
 
@@ -71,6 +74,9 @@ class Controls {
 	   bool down = false;
 	   bool p = false;
 	   bool mouseDown = false;
+	   bool fast = false;
+	   bool slow = false;
+	   bool shift = false;
 	   Vec2 mouse{0.f, 0.f};
 	   Vec2 worldMouse{0.f, 0.f};
 	   Vec2 clipMouse{0.f, 0.f};
@@ -237,12 +243,14 @@ public:
 #define PERSON_TURRET 2
 #define PERSON_TANK 3
 #define PERSON_GOLD_MINE 4
+#define PERSON_BATTERY 5
 
 #define PROJECTILE_ARROW 0
 #define PROJECTILE_CANNONBALL 1
 #define PROJECTILE_BULLET 2
 #define PROJECTILE_MISSILE 3
 #define PROJECTILE_SPARK 4
+#define PROJECTILE_ELECTRICITY 5
 class Projectile {
 	public:
 	Vec3 pos{0.f, 0.f, 0.f};
@@ -288,6 +296,13 @@ class Projectile {
 			u = 3.f;
 			speed = 0.01f;
 			health = 10000000.f;
+			break;
+		case PROJECTILE_ELECTRICITY:
+			damage = 0.5f;
+			u = 3.f;
+			health = 3.f;
+			guided = true;
+			speed = 1.5f;
 			break;
 		}
 	}
@@ -344,6 +359,13 @@ class PersonStats {
 			projectile.damage = 10.f;
 			size = {3.f, 2.5f, 3.f};
 			break;
+		case PERSON_BATTERY:
+			price = 750.f;
+			range = 3.f;
+			shootDelay = 0.1f;
+			projectile = {PROJECTILE_ELECTRICITY, {0.f, 1.f, 0.f}, {0.f, 0.f, 0.f}};
+			size = {0.8f, 2.2f, 0.8f};
+			break;
 		}
 	}
 };
@@ -394,6 +416,8 @@ class Person {
 			return {{"default", 0.f}, {"strong missiles", 700.f}, {"guided missiles not working", 1220.f}, {"coming soon", 70032436598263495.f}}; // move around
 		case PERSON_GOLD_MINE:
 			return {{"default", 0.f}, {"faster minecart", 300.f}, {"electric minecart", 420.f}, {"mega fast minecart", 587.f}};
+		case PERSON_BATTERY:
+			return {{"default", 0.f}, {"more volts", 300.f}, {"li ion", 450.f}, {"op", 100100.f}};
 		}
 		return {{"default", 0.f}, {"level 1", 100.f}, {"level 2", 200.f}, {"level 3", 300.f}};
 	}
@@ -430,7 +454,7 @@ public:
 	float entitySpawnDelay = 0.f;
 	Person placingPerson{PERSON_ARCHER, {2.f, 0.f, 2.f}};
 	bool isPlacingPerson = false;
-	float money = 300.f;
+	float money = 301231231230.f;
 	bool tankUnlocked = !false;
 	Wave waveCurrentlySpawning{"", {}};
 	vector<Wave> waves = {
@@ -450,7 +474,7 @@ public:
 		{"iron maiden has alot of hp", {{ENTITY_FAST, 0.5f, 10}, {ENTITY_MONSTER, 0.5f, 10}, {ENTITY_NORMAL, 0.15f, 10}, {ENTITY_IRON_MAIDEN, 0.5f, 1}}},
 		{"", {{ENTITY_NORMAL, 0.1f, 40}}},
 		{"", {{ENTITY_NORMAL, .1f, 13},{ENTITY_FAST, .1f, 13},{ENTITY_NORMAL, .1f, 13},{ENTITY_FAST, .1f, 13},{ENTITY_NORMAL, .1f, 13},{ENTITY_FAST, .1f, 13}}},
-		{"", {{ENTITY_FAST, .05f},{ENTITY_FAST, .05f},{ENTITY_FAST, .05f},{ENTITY_FAST, .05f},{ENTITY_FAST, .05f},{ENTITY_FAST, .05f},{ENTITY_FAST, 1.f},{ENTITY_NORMAL, .05f},{ENTITY_NORMAL, .05f},{ENTITY_NORMAL, .05f},{ENTITY_NORMAL, .05f},{ENTITY_NORMAL, .05f},{ENTITY_NORMAL, .05f},{ENTITY_NORMAL, 1.f},{ENTITY_FAST, .05f},{ENTITY_FAST, .05f},{ENTITY_FAST, .05f},{ENTITY_FAST, .05f},{ENTITY_FAST, .05f},{ENTITY_FAST, .05f},{ENTITY_FAST, 1.f}}},
+		{"", {{ENTITY_FAST, 0.05f, 20}, {ENTITY_NORMAL, 0.05f, 20}, {ENTITY_FAST, 0.05f, 20}}},
 		{"", {{ENTITY_FAST, .1f},{ENTITY_FAST, .1f},{ENTITY_FAST, .1f},{ENTITY_FAST, .1f},{ENTITY_FAST, .1f},{ENTITY_FAST, .1f},{ENTITY_FAST, .1f},{ENTITY_MONSTER, .1f},{ENTITY_FAST, .1f},{ENTITY_FAST, .1f},{ENTITY_MONSTER, .1f},{ENTITY_FAST, .1f},{ENTITY_FAST, .1f},{ENTITY_MONSTER, .1f}}},
 		{"", {{ENTITY_IRON_MAIDEN, 2.f},{ENTITY_IRON_MAIDEN, 2.f},{ENTITY_IRON_MAIDEN, 2.f}}},
 		{"boss round", {{ENTITY_GENERAL, 2.f}}},
@@ -524,7 +548,7 @@ public:
 							projectiles[projectiles.size() - 1].pos = people[i].pos;
 							projectiles[projectiles.size() - 1].pos.y += 1.f;
 							projectiles[projectiles.size() - 1].velocity = projectileVel;
-							projectiles.push_back({PROJECTILE_SPARK, vec3Add(people[i].pos, {0.f, 1.f, 0.f}), projectileVel.normalise(0.01f)});
+							if (people[i].type == PERSON_TURRET) projectiles.push_back({PROJECTILE_SPARK, vec3Add(people[i].pos, {0.f, 1.f, 0.f}), projectileVel.normalise(0.01f)});
 						}
 					}
 				}
@@ -539,7 +563,7 @@ public:
 			}
 			projectiles[i].pos = vec3Add(projectiles[i].pos, vec3Mul(projectiles[i].velocity, d));
 			projectiles[i].age += d / 60.f;
-			if (projectiles[i].age > 5.f || (projectiles[i].type == PROJECTILE_SPARK && projectiles[i].age > 0.05f)) {
+			if (projectiles[i].age > 5.f || (projectiles[i].type == PROJECTILE_SPARK && projectiles[i].age > 0.05f) || (projectiles[i].type == PROJECTILE_ELECTRICITY && projectiles[i].age > 0.25)) {
 				projectiles.erase(projectiles.begin() + i);
 				continue;
 			}
@@ -669,8 +693,7 @@ public:
 	}
 	void upgradePerson(Person* person) {
 		vector<PersonUpgrade> upgrades = person->getUpgrades();
-		if (person->stats.level > (int)upgrades.size() - 1) return;
-		if (money >= upgrades[person->stats.level + 1].price) {
+		if ((person->stats.level < (int)upgrades.size() - 1 && money >= upgrades[person->stats.level + 1].price)) {
 			money -= upgrades[person->stats.level + 1].price;
 			person->stats.price += upgrades[person->stats.level + 1].price;
 			person->stats.level++;
@@ -727,6 +750,16 @@ public:
 					person->stats.shootDelay *= 0.8f;
 				} else if (person->stats.level == 3) {
 					person->stats.shootDelay *= 0.8f;
+				}
+				break;
+			case PERSON_BATTERY: // them
+				if (person->stats.level == 1) {
+					person->stats.range *= 1.5f;
+					person->stats.projectile.damage *= 2.f;
+				} else if (person->stats.level == 2) {
+					person->stats.shootDelay *= 0.7f;
+				} else if (person->stats.level == 3) {
+					person->stats.shootDelay *= 0.01f;
 				}
 				break;
 			}
@@ -848,7 +881,8 @@ vector<personButton> personButtons = {
 	{PERSON_CANNON, 1.f, 2.f},
 	{PERSON_TURRET, 2.f, 2.f},
 	{PERSON_TANK, 3.f, 2.f},
-	{PERSON_GOLD_MINE, 4.f, 2.f}
+	{PERSON_GOLD_MINE, 4.f, 2.f},
+	{PERSON_BATTERY, 5.f, 2.f},
 };
 string getFileText(string path) {
 	ifstream file{path};
@@ -873,7 +907,8 @@ class Material {
 	public:
 		const char* vertexText;
 		const char* fragmentText;
-		GLuint vertexShader,fragmentShader;
+		GLuint program,vertexShader,fragmentShader;
+		GLint mvp_location, texture1_location, vpos_location, vtexcoord_location;
 
 		int textureWidth, textureHeight, textureColorChannels;
 		unsigned char* textureBytes;
@@ -902,6 +937,17 @@ class Material {
 				cerr << "ERROR: failed to load texture file \"" << textureFile << "\"" << endl;
 			};
 			stbi_image_free(textureBytes);
+
+			program = glCreateProgram();
+		
+			glAttachShader(program, vertexShader);
+			glAttachShader(program, fragmentShader);
+			glLinkProgram(program);
+
+			mvp_location = glGetUniformLocation(program, "MVP");
+			texture1_location = glGetUniformLocation(program, "texture1");
+			vpos_location = glGetAttribLocation(program, "vPos");
+			vtexcoord_location = glGetAttribLocation(program, "vTexCoord");
 
 			cout << endl;
 		}
@@ -1057,7 +1103,7 @@ public:
 	GameState* game;
 
 	float aspect;
-	GLuint program, vertexBuffer,elementBuffer;
+	GLuint vertexBuffer,elementBuffer;
 
 	#define MAT_SOLID 0
 	#define MAT_GUI 1
@@ -1083,14 +1129,20 @@ public:
 	#define MAT_GOLD 21
 	#define MAT_GUI_ICON_GOLD_MINE 22
 	#define MAT_CAMO 23
+	#define MAT_GUI_PLAY 24
+	#define MAT_GUI_PLAY_DISABLED 25
+	#define MAT_ROCK 26
+	#define MAT_FIRE 27
+	#define MAT_GUI_ICON_BATTERY 28
+	#define MAT_ELECTRICITY 29
 	vector<Material> materials = {
 		{"resources/shader/solid.vsh", "resources/shader/solid.fsh", "resources/texture/brain.png"},
 		{"resources/shader/gui.vsh", "resources/shader/gui.fsh", "resources/texture/screen.png"},
-		{"resources/shader/solid.vsh", "resources/shader/world_uv.fsh", "resources/texture/grass.png"},
+		{"resources/shader/solid.vsh", "resources/shader/world_uv_random.fsh", "resources/texture/grass.png"},
 		{"resources/shader/solid.vsh", "resources/shader/world_uv.fsh", "resources/texture/stone.png"},
 		{"resources/shader/gui.vsh", "resources/shader/gui.fsh", "resources/texture/gui_container.png"}, 
 		{"resources/shader/gui.vsh", "resources/shader/gui.fsh", "resources/texture/button.png"}, 
-		{"resources/shader/gui.vsh", "resources/shader/gui.fsh", "resources/texture/button_disabled.png"}, 
+		{"resources/shader/gui.vsh", "resources/shader/gui_grayscale.fsh", "resources/texture/button.png"}, 
 		{"resources/shader/gui.vsh", "resources/shader/gui.fsh", "resources/texture/icon_archer.png"}, 
 		{"resources/shader/gui.vsh", "resources/shader/gui.fsh", "resources/texture/icon_cannon.png"}, 
 		{"resources/shader/gui.vsh", "resources/shader/gui.fsh", "resources/texture/icon_turret.png"}, 
@@ -1100,14 +1152,20 @@ public:
 		{"resources/shader/solid.vsh", "resources/shader/range_red.fsh", "resources/texture/brain.png"}, 
 		{"resources/shader/font.vsh", "resources/shader/gui.fsh", "resources/texture/font.png"}, 
 		{"resources/shader/gui.vsh", "resources/shader/gui.fsh", "resources/texture/button_upgrade.png"}, 
-		{"resources/shader/gui.vsh", "resources/shader/gui.fsh", "resources/texture/button_upgrade_disabled.png"}, 
-		{"resources/shader/solid.vsh", "resources/shader/world_uv.fsh", "resources/texture/metal_black.png"}, 
-		{"resources/shader/solid.vsh", "resources/shader/world_uv.fsh", "resources/texture/wood.png"}, 
-		{"resources/shader/solid.vsh", "resources/shader/world_uv.fsh", "resources/texture/skin.png"}, 
-		{"resources/shader/solid.vsh", "resources/shader/world_uv.fsh", "resources/texture/metal.png"}, 
-		{"resources/shader/solid.vsh", "resources/shader/world_uv.fsh", "resources/texture/gold.png"}, 
+		{"resources/shader/gui.vsh", "resources/shader/gui_grayscale.fsh", "resources/texture/button_upgrade.png"}, 
+		{"resources/shader/solid.vsh", "resources/shader/solid.fsh", "resources/texture/metal_black.png"}, 
+		{"resources/shader/solid.vsh", "resources/shader/solid.fsh", "resources/texture/wood.png"}, 
+		{"resources/shader/solid.vsh", "resources/shader/solid.fsh", "resources/texture/skin.png"}, 
+		{"resources/shader/solid.vsh", "resources/shader/solid.fsh", "resources/texture/metal.png"}, 
+		{"resources/shader/solid.vsh", "resources/shader/solid.fsh", "resources/texture/gold.png"}, 
 		{"resources/shader/gui.vsh", "resources/shader/gui.fsh", "resources/texture/icon_gold_mine.png"}, 
-		{"resources/shader/solid.vsh", "resources/shader/world_uv.fsh", "resources/texture/camo.png"}, 
+		{"resources/shader/solid.vsh", "resources/shader/solid.fsh", "resources/texture/camo.png"}, 
+		{"resources/shader/gui.vsh", "resources/shader/gui.fsh", "resources/texture/button_play.png"}, 
+		{"resources/shader/gui.vsh", "resources/shader/gui_grayscale.fsh", "resources/texture/button_play.png"}, 
+		{"resources/shader/solid.vsh", "resources/shader/solid.fsh", "resources/texture/rock.png"}, 
+		{"resources/shader/solid.vsh", "resources/shader/solid.fsh", "resources/texture/fire.png"}, 
+		{"resources/shader/gui.vsh", "resources/shader/gui.fsh", "resources/texture/icon_battery.png"},
+		{"resources/shader/solid.vsh", "resources/shader/electricity.fsh", "resources/texture/icon_battery.png"}
 	};
 
 	vector<Vertex> vertices = {};
@@ -1118,6 +1176,7 @@ public:
 	Mesh archerMesh{&materials, "resources/model/person/archer.obj"};
 	Mesh tankMesh{&materials, "resources/model/person/tank.obj"};
 	Mesh goldMineMesh{&materials, "resources/model/person/goldmine.obj"};
+	Mesh batteryMesh{&materials, "resources/model/person/battery.obj"};
 
 	Mesh normalMesh{&materials, "resources/model/entity/normal.obj"};
 	Mesh fastMesh{&materials, "resources/model/entity/fast.obj"};
@@ -1126,6 +1185,9 @@ public:
 	Mesh ironMaidenMesh{&materials, "resources/model/entity/ironmaiden.obj"};
 
 	Mesh missileMesh{&materials, "resources/model/projectile/missile.obj"};
+	Mesh cannonballMesh{&materials, "resources/model/projectile/cannonball.obj"};
+	Mesh sparkMesh{&materials, "resources/model/projectile/spark.obj"};
+	Mesh electricityMesh{&materials, "resources/model/projectile/electricity.obj"};
 
 	Mesh planeMesh{&materials, "resources/model/plane.obj"};
 
@@ -1144,8 +1206,6 @@ public:
 		// index buffer
 		glGenBuffers(1, &elementBuffer);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBuffer);
-
-		program = glCreateProgram();
 	}
 	void buildThem(int width, int height) {
 		aspect = (float)width / (float)height;
@@ -1158,7 +1218,8 @@ public:
 		}
 		// point path
 		for (int i = 0; i < (int)game->levels[game->activeLevel].path.size() - 1; i++) {
-			addPath(game->levels[game->activeLevel].path[i], game->levels[game->activeLevel].path[i + 1], game->levels[game->activeLevel].pathWidth, MAT_STONE);
+			addPath(game->levels[game->activeLevel].path[i], game->levels[game->activeLevel].path[i + 1], game->levels[game->activeLevel].pathWidth + 0.1f, 0.01f, MAT_WOOD);
+			addPath(game->levels[game->activeLevel].path[i], game->levels[game->activeLevel].path[i + 1], game->levels[game->activeLevel].pathWidth, 0.02f, MAT_STONE);
 		}
 		// entities
 		for (Entity entity : game->entities) {
@@ -1197,10 +1258,16 @@ public:
 				addMesh(missileMesh, projectile.pos, {1.f, 1.f, 1.f}, atan2(projectile.velocity.z, projectile.velocity.x));
 				break;
 			case PROJECTILE_SPARK:
-				addMesh(planeMesh, vec3Add(projectile.pos, projectile.velocity.normalise(0.7f)), {.3f, .3f, .3f}, atan2(projectile.velocity.z, projectile.velocity.x));
+				addMesh(sparkMesh, vec3Add(projectile.pos, projectile.velocity.normalise(0.7f)), {1.f, 1.f, 1.f}, atan2(projectile.velocity.z, projectile.velocity.x));
+				break;
+			case PROJECTILE_CANNONBALL:
+				addMesh(cannonballMesh, projectile.pos, {1.f, 1.f, 1.f}, atan2(projectile.velocity.z, projectile.velocity.x));
+				break;
+			case PROJECTILE_ELECTRICITY:
+				addArc(projectile.pos, vec3Add(projectile.pos, projectile.velocity.normalise(1.f)));
 				break;
 			default:
-				addPath(projectile.pos, vec3Add(projectile.pos, projectile.velocity), 0.1f, 1);
+				addPath(projectile.pos, vec3Add(projectile.pos, projectile.velocity), 0.1f, 0.f, 1);
 			}
 		}
 
@@ -1215,10 +1282,10 @@ public:
 			addText("YOU WON", -0.9f, -0.9f, 0.1f, 0.2f, 0.8f);
 		}*/
 		addRect(0.7f, -1.f, 0.25f, 0.3f, 2.f, MAT_GUI_CONTAINER); // right
-		addRect(0.725f, -0.95f, 0.2f, 0.25f, 0.25f, game->waveEnded() ? MAT_GUI : MAT_SOLID); // play button
+		addRect(0.725f, -0.95f, 0.2f, 0.25f, 0.25f, game->waveEnded() ? MAT_GUI_PLAY : MAT_GUI_PLAY_DISABLED); // play button
 		for (Person person : game->people) {
 			if (person.selected) {
-				addRect(0.75f, 0.55f, 0.2f, 0.15f, 0.15f, (person.stats.level <= (int)person.getUpgrades().size() - 1 && game->money >= person.getUpgrades()[person.stats.level + 1].price) ? MAT_GUI_BUTTON_UPGRADE : MAT_GUI_BUTTON_UPGRADE_DISABLED);
+				addRect(0.75f, 0.55f, 0.2f, 0.15f, 0.15f, (person.stats.level < (int)person.getUpgrades().size() - 1 && game->money >= person.getUpgrades()[person.stats.level + 1].price) ? MAT_GUI_BUTTON_UPGRADE : MAT_GUI_BUTTON_UPGRADE_DISABLED);
 				vector<PersonUpgrade> upgrades = person.getUpgrades();
 				bool isMax = person.stats.level > (int)upgrades.size() - 2;
 				string upgradeText = isMax ? "max upgrades" : upgrades[person.stats.level + 1].name + ": $" + to_string((long long)upgrades[person.stats.level + 1].price);
@@ -1254,6 +1321,9 @@ public:
 			case PERSON_GOLD_MINE:
 				matId = MAT_GUI_ICON_GOLD_MINE;
 				break;
+			case PERSON_BATTERY:
+				matId = MAT_GUI_ICON_BATTERY;
+				break;
 			}
 			if (!game->isPlacingPerson || game->placingPerson.type != personButtons[i].type) addRect(x, y, 0.205f, 0.13f, 0.13f, matId);
 			PersonStats stats{personButtons[i].type};
@@ -1261,7 +1331,7 @@ public:
 		}
 		//if (game->tankUnlocked) addRect(-0.83f, 0.55f, 0.205f, 0.13f, 0.13f, 3.f, 2.f);
 		if (game->messageTime > 0.f) {
-			addRect(-0.5f, -0.9f, 0.2f, 1.f, 0.5f, MAT_GUI);
+			addRect(-0.5f, -0.9f, 0.2f, 1.f, 0.5f, MAT_GUI_CONTAINER);
 			addText(game->message, -0.45f, -0.6f, 0.1f, 0.07f, 0.7f, 0.9f);
 		}
 	}
@@ -1276,23 +1346,13 @@ public:
 		}
 	}
 	void renderMaterial(int id, int width, int height) {
-		GLint mvp_location, texture1_location, vpos_location, vtexcoord_location;
-		
-		glAttachShader(program, materials[id].vertexShader);
-		glAttachShader(program, materials[id].fragmentShader);
-		glLinkProgram(program);
-		
-		mvp_location = glGetUniformLocation(program, "MVP");
-		texture1_location = glGetUniformLocation(program, "texture1");
-		vpos_location = glGetAttribLocation(program, "vPos");
-		vtexcoord_location = glGetAttribLocation(program, "vTexCoord");
 
-		glEnableVertexAttribArray(vpos_location);
-		glVertexAttribPointer(vpos_location, 3, GL_FLOAT, GL_FALSE, sizeof(vertices[0]), (void*)0);
+
+		glEnableVertexAttribArray(materials[id].vpos_location);
+		glVertexAttribPointer(materials[id].vpos_location, 3, GL_FLOAT, GL_FALSE, sizeof(vertices[0]), (void*)0);
 	
-		glEnableVertexAttribArray(vtexcoord_location);
-		glVertexAttribPointer(vtexcoord_location, 2, GL_FLOAT, GL_FALSE, sizeof(vertices[0]), (void*)(sizeof(float) * 3));
-
+		glEnableVertexAttribArray(materials[id].vtexcoord_location);
+		glVertexAttribPointer(materials[id].vtexcoord_location, 2, GL_FLOAT, GL_FALSE, sizeof(vertices[0]), (void*)(sizeof(float) * 3));
 		float ratio = (float)width / (float)height;
 		mat4x4 m, p, mvp;
 
@@ -1309,13 +1369,10 @@ public:
 		mat4x4_perspective(p, 1.57f, ratio, 0.1f, 200.f);
 		mat4x4_mul(mvp, p, m);
 
-		glUniform1i(texture1_location, 0);
-		glUseProgram(program);
-		glUniformMatrix4fv(mvp_location, 1, GL_FALSE, (const GLfloat*)mvp);
+		glUniform1i(materials[id].texture1_location, 0);
+		glUseProgram(materials[id].program);
+		glUniformMatrix4fv(materials[id].mvp_location, 1, GL_FALSE, (const GLfloat*)mvp);
 		glDrawElements(GL_TRIANGLES, indiceses[id].size(), GL_UNSIGNED_INT, (void*)0);
-		
-		glDetachShader(program, materials[id].vertexShader);
-		glDetachShader(program, materials[id].fragmentShader);
 	}
 private:
 	void clearVertices() {
@@ -1344,6 +1401,9 @@ private:
 			break;
 		case PERSON_GOLD_MINE:
 			addMesh(goldMineMesh, person->pos, {1.f, 1.f, 1.f}, person->yRotation);
+			break;
+		case PERSON_BATTERY:
+			addMesh(batteryMesh, person->pos, {1.f, 1.f, 1.f}, person->yRotation);
 			break;
 		default:
 			addCube(person->pos.x - person->stats.size.x / 2.f, person->pos.y, person->pos.z - person->stats.size.z / 2.f, person->stats.size.x, person->stats.size.y, person->stats.size.z, 0);
@@ -1406,16 +1466,16 @@ private:
 			{x+w, y , z  , 1.f, 1.f, 1.f}
 		});
 	}
-	void addPath(Vec3 p1, Vec3 p2, float width, int matId) {
+	void addPath(Vec3 p1, Vec3 p2, float width, float yOffset, int matId) {
 		unsigned int end = vertices.size();
 		float dist = distance3D(p1, p2);
 		float xDiff = (p2.x - p1.x) / dist * width / 2.f;
 		float zDiff = (p2.z - p1.z) / dist * width / 2.f;
 		vertices.insert(vertices.end(), {
-			{p1.x - zDiff - xDiff, p1.y + 0.01f, p1.z + xDiff - zDiff, 0.f, 1.f, 1.f},
-			{p1.x + zDiff - xDiff, p1.y + 0.01f, p1.z - xDiff - zDiff, 1.f, 1.f, 1.f},
-			{p2.x - zDiff + xDiff, p2.y + 0.01f, p2.z + xDiff + zDiff, 0.f, 0.f, 1.f},
-			{p2.x + zDiff + xDiff, p2.y + 0.01f, p2.z - xDiff + zDiff, 1.f, 0.f, 1.f}
+			{p1.x - zDiff - xDiff, p1.y + yOffset, p1.z + xDiff - zDiff, 0.f, 1.f, 1.f},
+			{p1.x + zDiff - xDiff, p1.y + yOffset, p1.z - xDiff - zDiff, 1.f, 1.f, 1.f},
+			{p2.x - zDiff + xDiff, p2.y + yOffset, p2.z + xDiff + zDiff, 0.f, 0.f, 1.f},
+			{p2.x + zDiff + xDiff, p2.y + yOffset, p2.z - xDiff + zDiff, 1.f, 0.f, 1.f}
 		});
 		indiceses[matId].insert(indiceses[matId].end(), {
 			0U+end, 2U+end, 1U+end,
@@ -1446,6 +1506,14 @@ private:
 		vertices.insert(vertices.end(), mesh.vertices.begin(), mesh.vertices.end());
 		for (int i = 0; i < (int)indiceses.size(); i++) {
 			indiceses[i].insert(indiceses[i].end(), mesh.indiceses[i].begin(), mesh.indiceses[i].end());
+		}
+	}
+	void addArc(Vec3 start, Vec3 end) {
+		Vec3 pos = end;
+		for (int i = 0; i < 10; i++) {
+			Vec3 it = vec3Add({randFloat() * 2.f - 1.f, 0.f, randFloat() * 2.f - 1.f}, vec3Subtract(start, end).normalise(0.2f));
+			addMesh(electricityMesh, pos, {1.f, 1.f, 1.f}, atan2(it.z, it.x));
+			pos = vec3Add(pos, it);
 		}
 	}
 
@@ -1507,6 +1575,17 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 		else if (key == GLFW_KEY_UP) controls.up = true;
 		else if (key == GLFW_KEY_DOWN) controls.down = true;
 		else if (key == GLFW_KEY_P) controls.p = true;
+		else if (key == GLFW_KEY_RIGHT_BRACKET) controls.fast = true;
+		else if (key == GLFW_KEY_LEFT_BRACKET) controls.slow = true;
+		else if (key == GLFW_KEY_LEFT_SHIFT) controls.shift = true;
+		else if (key == GLFW_KEY_U) {
+			for (int i = 0; i < (int)game.people.size(); i++) {
+				if (game.people[i].selected) {
+					game.upgradePerson(&game.people[i]);
+					break;
+				}
+			}
+		}
 		/*else if (key == GLFW_KEY_K) {
 			game.levels[game.activeLevel].path.push_back({controls.worldMouse.y, 0.f, controls.worldMouse.x});
 		} else if (key == GLFW_KEY_L) {
@@ -1528,6 +1607,8 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 		else if (key == GLFW_KEY_UP) controls.up = false;
 		else if (key == GLFW_KEY_DOWN) controls.down = false;
 		else if (key == GLFW_KEY_P) controls.p = false;
+		else if (key == GLFW_KEY_RIGHT_BRACKET) controls.fast = false;
+		else if (key == GLFW_KEY_LEFT_BRACKET) controls.slow = false;
 	};
 }
 static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
@@ -1580,7 +1661,7 @@ static void mouse_button_callback(GLFWwindow* window, int button, int action, in
 			if (game.isPlacingPerson && game.money >= game.placingPerson.stats.price && game.placingPerson.isPlacable(&game.levels[game.activeLevel], &game.people) && controls.clipMouse.x > -0.7f) {
 				game.people.push_back(game.placingPerson);
 				game.money -= game.placingPerson.stats.price;
-				game.isPlacingPerson = false;
+				if (!controls.shift) game.isPlacingPerson = false;
 			};
 			bool personSelected = false;
 			for (int i = 0; i < (int)game.people.size(); i++) {
@@ -1614,8 +1695,71 @@ static void cursor_position_callback(GLFWwindow* window, double xpos, double ypo
 static void error_callback(int error, const char* description) {
 	fprintf(stderr, "ERROR: %s\n", description);
 }
-
 int main(void) {
+	//defive 
+	const ALCchar* defaultDeviceString = alcGetString(nullptr, ALC_DEFAULT_DEVICE_SPECIFIER);
+	ALCdevice* device = alcOpenDevice(defaultDeviceString);
+	if (!device) {
+		cerr << "ERROR: failed loading default sound device" << endl;
+	}
+	cout << "INFO: openal device name: " << alcGetString(device, ALC_DEVICE_SPECIFIER) << endl;
+
+	ALCcontext* context = alcCreateContext(device, nullptr);
+
+	if (!alcMakeContextCurrent(context)) {
+		cerr << "ERROR: failed to make openal context current" << endl;
+	}
+	alListener3f(AL_POSITION, 0.f, 0.f, 0.f);
+	alListener3f(AL_VELOCITY, 0.f, 0.f, 0.f);
+	ALfloat forwardAndUpVectors[] = {
+		1.f, 0.f, 0.f,
+		0.f, 1.f, 0.f
+	};
+	alListenerfv(AL_ORIENTATION, forwardAndUpVectors);
+
+	AudioFile<float> monoSoundFile;
+	if (!monoSoundFile.load("resources/audio/brain.wav")) {
+		cerr << "ERROR: failed to load brain sound" << endl;
+	}
+	vector<uint8_t> monoPCMDataBytes;
+	monoSoundFile.writePCMToBuffer(monoPCMDataBytes);
+	auto convertFileToOpenALFormat = [](const AudioFile<float>& audioFile) {
+		int bitDepth = audioFile.getBitDepth();
+		if (bitDepth == 16) {
+			return audioFile.isStereo() ? AL_FORMAT_STEREO16 : AL_FORMAT_MONO16;
+		} else if (bitDepth == 8) {
+			return audioFile.isStereo() ? AL_FORMAT_STEREO8 : AL_FORMAT_MONO8;
+		} else {
+			cerr << "ERROR: bad bit depth for audio file" << endl;
+			return -1;
+		}
+	};
+	ALuint monoSoundBuffer;
+	alGenBuffers(1, &monoSoundBuffer);
+	alBufferData(monoSoundBuffer, convertFileToOpenALFormat(monoSoundFile), monoPCMDataBytes.data(), monoPCMDataBytes.size(), monoSoundFile.getSampleRate());
+
+	ALuint monoSource;
+	alGenSources(1, &monoSource);
+	alSource3f(monoSource, AL_POSITION, 1.f, 0.f, 0.f);
+	alSource3f(monoSource, AL_VELOCITY, 0.f, 0.f, 0.f);
+	alSourcef(monoSource, AL_PITCH, 1.f);
+	alSourcef(monoSource, AL_GAIN, 1.f);
+	alSourcei(monoSource, AL_LOOPING, AL_FALSE);
+	alSourcei(monoSource, AL_BUFFER, monoSoundBuffer);
+
+	alSourcePlay(monoSource);
+	ALint sourceState;
+	alGetSourcei(monoSource, AL_SOURCE_STATE, &sourceState);
+	while (sourceState == AL_PLAYING) {
+		alGetSourcei(monoSource, AL_SOURCE_STATE, &sourceState);
+	}
+	alDeleteSources(1, &monoSource);
+	alDeleteBuffers(1, &monoSoundBuffer);
+	alcMakeContextCurrent(nullptr);
+	alcDestroyContext(context);
+	alcCloseDevice(device);
+
+
 	glfwSetErrorCallback(error_callback);
 
 	if (!glfwInit()) exit(EXIT_FAILURE);
@@ -1664,8 +1808,8 @@ int main(void) {
 		
 		glfwGetFramebufferSize(window, &width, &height);
 
-		game.d = 0.2 * (frameTime / (1.f / 60.f));
-		for (int i = 0; i < 5; i++) {
+		game.d = (controls.slow ? 0.1f : (controls.fast ? 0.5f : 0.2f)) * (frameTime / (1.f / 60.f));
+		for (int i = 0; i < (controls.slow ? 1 : (controls.fast ? 10 : 5)); i++) {
 			game.tick(width, height);
 		}
 
