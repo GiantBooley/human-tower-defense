@@ -7,13 +7,12 @@ out vec4 FragColor;
 
 uniform sampler2D texture1;
 
-bool circle(vec2 texcoord, vec2 pos, float r) {
-	return distance(texcoord, pos) < r;
-}
 void main() {
-	if (!circle(texCoord, vec2(0.5, 0.5), 0.5)) {
+	float dist = distance(texCoord, vec2(0.5, 0.5));
+	if (dist > 0.5) {
 		discard;
 	}
-	vec4 color = vec4(0.5, 0.9, 0.5, 0.8);
+	float alpha = mix(0.2, 1.0, dist * 2.0);
+	vec4 color = vec4(0.5, 0.9, 0.5, 0.8 * alpha);
 	FragColor = color;
 }

@@ -1,0 +1,9 @@
+human-tower-defense.kdev4
+/build/HumanTowerDefense
+compile_commands.json
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+.cmake/
+.kdev4/
