@@ -260,6 +260,7 @@ Vec3 vec3Mul(Vec3 a, float b) {
 #define ENTITY_TUNGSTEN_MAIDEN 5
 #define ENTITY_TWIN 6
 #define ENTITY_GENERAL 7
+#define ENTITY_TROJANHORSE 8
 class Entity {
 public:
 	int type;
@@ -341,12 +342,20 @@ public:
 			size = {1.4f, 3.4f, 1.4f};
 			break;
 		case ENTITY_GENERAL:
-			speed = 5.f;
+			speed = 3.f;
 			u = 8.f;
 			health = 800.f;
 			reward = 2000.f;
-			damage = 509231589.f;
+			damage = 50318231.f;
 			size = {3.35f, 4.9f, 3.35f};
+			break;
+		case ENTITY_TROJANHORSE:
+			speed = 30.f;
+			u = 8.f;
+			health = 100.f;
+			reward = 2000.f;
+			damage = 509231589.f;
+			size = {3.f, 2.7f, 3.f};
 			break;
 		}
 		maxHealth = health;
@@ -417,7 +426,7 @@ class Projectile {
 		case PROJECTILE_ARROW:
 			damage = 1.3f;
 			u = 0.f;
-			speed = 68.58f;
+			speed = 30.f;
 			health = 1.f;
 			break;
 		case PROJECTILE_CANNONBALL:
@@ -434,13 +443,13 @@ class Projectile {
 		case PROJECTILE_MISSILE:
 			damage = 6.f;
 			u = 3.f;
-			speed = 15.f;
+			speed = 10.f;
 			health = 5.f;
 			break;
 		case PROJECTILE_SPARK:
 			damage = 0.f;
 			u = 3.f;
-			speed = 600.f;
+			speed = 200.f;
 			health = 10000000.f;
 			break;
 		case PROJECTILE_ELECTRICITY:
@@ -448,7 +457,7 @@ class Projectile {
 			u = 3.f;
 			health = 3.f;
 			guided = true;
-			speed = 90.f;
+			speed = 100.f;
 			break;
 		case PROJECTILE_POTION:
 			damage = 2.f;
@@ -570,9 +579,9 @@ class Person {
 		case PERSON_CANNON:
 			return {{"default", 0.f}, {"shorter fuse", 175.f}, {"missile launcher", 350.f}, {"op", 800.f}, {"the last resort", 500000.f}};
 		case PERSON_TURRET:
-			return {{"default", 0.f}, {"fast", 300.f}, {"extra pierce", 500.f}, {"powerful bullets", 700.f}};
+			return {{"default", 0.f}, {"fast", 300.f}, {"extra pierce", 500.f}, {"ultra fast", 5000.f}};
 		case PERSON_TANK:
-			return {{"default", 0.f}, {"strong missiles", 700.f}, {"guided missiles", 1220.f}, {"coming soon", 70032436598263495.f}}; // move around
+			return {{"default", 0.f}, {"strong missiles", 700.f}, {"guided missiles", 1220.f}, {"gigatron", 123123123.f}}; // move around
 		case PERSON_GOLD_MINE:
 			return {{"default", 0.f}, {"faster minecart", 300.f}, {"electric minecart", 420.f}, {"mega fast minecart", 587.f}};
 		case PERSON_BATTERY:
@@ -732,7 +741,7 @@ class World {
 	vector<Person> people = {};
 	vector<Projectile> projectiles = {};
 	Camera camera;
-	float money = 100.f;
+	float money = 201231231230.f;
 	float health = 100.f;
 	int waveNumber = 0;
 	bool tankUnlocked = false;
@@ -783,6 +792,8 @@ public:
 	int gameStatus = 1; // 0:playing,1:menu
 	vector<Wave> waves = {
 		{"", {{ENTITY_NORMAL, 0.3f, 10}}},
+		{"", {{ENTITY_NORMAL, 0.3f, 10}}},
+		{"", {{ENTITY_NORMAL, 0.3f, 20}}},
 		{"", {{ENTITY_NORMAL, 0.25f, 15}}},
 		{"", {{ENTITY_NORMAL, 0.3f, 30}}},
 		{"", {{ENTITY_NORMAL, 0.2f, 10}, {ENTITY_FAST, 0.3f, 3}}},
@@ -794,30 +805,51 @@ public:
 		{"monsters this wave", {{ENTITY_MONSTER, 0.5f, 12}}},
 		{"", {{ENTITY_FAST, 0.1f, 30}}},
 		{"", {{ENTITY_NORMAL, 0.2f, 20}, {ENTITY_MONSTER, 0.5f, 4}, {ENTITY_FAST, 0.1f, 10}}},
-		{"", {{ENTITY_FAST, 0.02f, 20}, {ENTITY_NORMAL, 0.1f, 5}}},
+		{"", {{ENTITY_FAST, 0.2f, 10}, {ENTITY_MONSTER, 0.5f, 5}, {ENTITY_NORMAL, 0.1f, 30}}},
+		{"", {{ENTITY_FAST, 0.05f, 20}, {ENTITY_NORMAL, 0.1f, 5}}},
 		{"", {{ENTITY_NORMAL, 0.1f, 260}}},
+		{"", {{ENTITY_NORMAL, .1f, 13},{ENTITY_FAST, .1f, 13},{ENTITY_NORMAL, .1f, 13},{ENTITY_FAST, .1f, 13},{ENTITY_NORMAL, .1f, 13},{ENTITY_FAST, .1f, 13}}},
 		{"", {{ENTITY_NORMAL, .1f, 13},{ENTITY_FAST, .1f, 13},{ENTITY_NORMAL, .1f, 13},{ENTITY_FAST, .1f, 13},{ENTITY_NORMAL, .1f, 13},{ENTITY_FAST, .1f, 13}}},
 		{"", {{ENTITY_FAST, 0.05f, 20}, {ENTITY_NORMAL, 0.05f, 20}, {ENTITY_FAST, 0.05f, 20}}},
 		{"iron maiden has alot of hp", {{ENTITY_IRON_MAIDEN, 0.5f, 1}}},
-		{"", {{ENTITY_FAST, 0.02f, 100}}},
+		{"", {{ENTITY_FAST, 0.2f, 100}}},
 		{"", {{ENTITY_NORMAL, 0.2f, 10}, {ENTITY_FAST, 0.08f, 30}}},
 		{"", {{ENTITY_MONSTER, 0.2f, 5}, {ENTITY_NORMAL, 0.1f, 20}}},
+		{"", {{ENTITY_MONSTER, 0.2f, 100}}},
+		{"", {{ENTITY_FAST, 0.1f, 10}, {ENTITY_NORMAL, 0.05f, 50}}},
 		{"", {{ENTITY_IRON_MAIDEN, 2.f, 3}}},
+		{"", {{ENTITY_IRON_MAIDEN, 2.f, 5}}},
 		{"", {{ENTITY_MONSTER, 0.5f, 10}}},
-		{"", {{ENTITY_IRON_MAIDEN, 1.5f, 5}}},
-		{"", {{ENTITY_IRON_MAIDEN, 1.f, 7},{ENTITY_MONSTER, 0.5f, 20}}},
-		{"", {{ENTITY_NORMAL, 0.02f, 120}}},
+		{"", {{ENTITY_IRON_MAIDEN, 1.5f, 3}}},
+		{"", {{ENTITY_IRON_MAIDEN, 1.5f, 3},{ENTITY_MONSTER, 0.5f, 20}}},
+		{"", {{ENTITY_IRON_MAIDEN, 2.f, 5}, {ENTITY_NORMAL, 0.05f, 100}}},
+		{"", {{ENTITY_NORMAL, 0.02f, 70}}},
 		{"boss round", {{ENTITY_GENERAL, 2.f}}},
-		{"tank unlocked!", {{ENTITY_FAST, 0.3f, 20},{ENTITY_IRON_MAIDEN, 2.f},{ENTITY_IRON_MAIDEN, 2.f}}},
-		{"twins drop 2 fasts", {{ENTITY_TWIN, 0.1f},{ENTITY_TWIN, 0.1f},{ENTITY_TWIN, 0.1f},{ENTITY_TWIN, 0.1f},{ENTITY_TWIN, 0.1f},{ENTITY_TWIN, 0.1f},{ENTITY_TWIN, 0.1f},{ENTITY_TWIN, 0.1f},{ENTITY_TWIN, 0.1f}}},
+		{"tank unlocked!", {{ENTITY_FAST, 0.3f, 20},{ENTITY_IRON_MAIDEN, 2.f, 2}}},
+		{"twins drop 2 fasts", {{ENTITY_TWIN, 0.1f, 10}}},
 		{"", {{ENTITY_TWIN, 0.2f},{ENTITY_MONSTER,0.2f},{ENTITY_TWIN, 0.2f},{ENTITY_MONSTER,0.2f},{ENTITY_TWIN, 0.2f},{ENTITY_MONSTER,0.2f},{ENTITY_TWIN, 0.2f},{ENTITY_MONSTER,0.2f},{ENTITY_TWIN, 0.2f},{ENTITY_MONSTER,0.2f},{ENTITY_TWIN, 0.2f},{ENTITY_MONSTER,0.2f},{ENTITY_TWIN, 0.2f},{ENTITY_MONSTER,0.2f},{ENTITY_TWIN, 0.2f},{ENTITY_MONSTER,0.2f},{ENTITY_TWIN, 0.2f},{ENTITY_MONSTER,0.2f},{ENTITY_TWIN, 0.2f},{ENTITY_MONSTER,0.2f}}},
 		{"", {{ENTITY_FAST, 0.1f},{ENTITY_FAST, 0.1f},{ENTITY_FAST, 0.1f},{ENTITY_FAST, 0.1f},{ENTITY_FAST, 0.1f},{ENTITY_FAST, 0.1f},{ENTITY_FAST, 0.1f}}},
 		{"", {{ENTITY_NORMAL, 0.05f},{ENTITY_NORMAL, 0.05f},{ENTITY_NORMAL, 0.05f},{ENTITY_NORMAL, 0.05f},{ENTITY_NORMAL, 0.05f},{ENTITY_NORMAL, 0.05f},{ENTITY_NORMAL, 0.05f},{ENTITY_NORMAL, 0.05f},{ENTITY_NORMAL, 0.05f},{ENTITY_NORMAL, 0.05f},{ENTITY_NORMAL, 0.05f},{ENTITY_NORMAL, 0.05f},{ENTITY_IRON_MAIDEN, 0.05f},{ENTITY_NORMAL, 0.05f},{ENTITY_NORMAL, 0.05f},{ENTITY_NORMAL, 0.05f},{ENTITY_IRON_MAIDEN, 0.05f},{ENTITY_NORMAL, 0.05f},{ENTITY_NORMAL, 0.05f}}},
 		{"", {{ENTITY_TWIN, 0.05f},{ENTITY_TWIN, 0.05f},{ENTITY_MONSTER, 0.05f},{ENTITY_MONSTER, 0.05f},{ENTITY_MONSTER, 0.05f},{ENTITY_MONSTER, 0.05f},{ENTITY_MONSTER, 0.05f},{ENTITY_MONSTER, 0.05f}}},
 		{"tungsten maiden this round", {{ENTITY_TUNGSTEN_MAIDEN, 0.1f}}},
 		{"", {{ENTITY_NORMAL, 0.1f},{ENTITY_NORMAL, 0.1f},{ENTITY_NORMAL, 0.1f},{ENTITY_FAST, 0.1f},{ENTITY_FAST, 0.1f},{ENTITY_FAST, 0.1f},{ENTITY_MONSTER, 0.1f},{ENTITY_MONSTER, 0.1f},{ENTITY_MONSTER, 0.1f},{ENTITY_IRON_MAIDEN, 0.1f},{ENTITY_IRON_MAIDEN, 0.1f},{ENTITY_IRON_MAIDEN, 0.1f},{ENTITY_TWIN, 0.1f},{ENTITY_TWIN, 0.1f},{ENTITY_TWIN, 0.1f}}},
-		{"admin this round", {{ENTITY_ADMIN, 0.1f}}},
-		{"", {{ENTITY_TUNGSTEN_MAIDEN, 1.f, 10}, {ENTITY_NORMAL, 0.02f, 1000}}}
+		{"admin", {{ENTITY_ADMIN, 0.1f}}},
+		{"", {{ENTITY_TUNGSTEN_MAIDEN, 1.f, 10}, {ENTITY_NORMAL, 0.02f, 1000}}},
+		{"trojan horse", {{ENTITY_TROJANHORSE, 0.1f}}},
+		{"trojan horse", {{ENTITY_TROJANHORSE, 0.1f}}},
+		{"trojan horse", {{ENTITY_TROJANHORSE, 0.1f}}},
+		{"trojan horse", {{ENTITY_TROJANHORSE, 0.1f}}},
+		{"trojan horse", {{ENTITY_TROJANHORSE, 0.1f}}},
+		{"trojan horse", {{ENTITY_TROJANHORSE, 0.1f}}},
+		{"trojan horse", {{ENTITY_TROJANHORSE, 0.1f}}},
+		{"trojan horse", {{ENTITY_TROJANHORSE, 0.1f}}},
+		{"trojan horse", {{ENTITY_TROJANHORSE, 0.1f}}},
+		{"trojan horse", {{ENTITY_TROJANHORSE, 0.1f}}},
+		{"trojan horse", {{ENTITY_TROJANHORSE, 0.1f}}},
+		{"trojan horse", {{ENTITY_TROJANHORSE, 0.1f}}},
+		{"trojan horse", {{ENTITY_TROJANHORSE, 0.1f, 20}}},
+		{"guys", {{ENTITY_NORMAL, 0.01f, 10000}}},
+		{"boss round 2", {{ENTITY_GENERAL, 2.f, 10}}}
 	};
 	GameState() {
 		
@@ -991,7 +1023,7 @@ public:
 				world.entities.at(i).pos.x += xDelta * d;
 				world.entities.at(i).pos.y += (targetPointPos.y - world.entities.at(i).pos.y) / distanceToTargetPoint * world.entities.at(i).speed * d;
 				world.entities.at(i).pos.z += zDelta * d;
-				if (world.entities.at(i).type == ENTITY_GENERAL && fmod(glfwGetTime(), 0.563f) < d) {
+				if ((world.entities.at(i).type == ENTITY_GENERAL || world.entities.at(i).type == ENTITY_TROJANHORSE) && fmod(glfwGetTime(), 0.563f) < d) {
 					soundDoer.play(soundDoer.sounds[SOUND_ROLL]);
 				}
 			}
@@ -1039,8 +1071,23 @@ public:
 			for (int i = 0; i < number; i++) {
 				if (number < 100) {
 					wave.entities.push_back({i % 3 == 0 ? ENTITY_MONSTER : (i % 3 == 1 ? ENTITY_TWIN : ENTITY_TUNGSTEN_MAIDEN), 0.05f});
+				} else if (number < 200) {
+					wave.entities.push_back({i % 2 == 0 ? ENTITY_GENERAL : ENTITY_TUNGSTEN_MAIDEN, 0.05f});
 				} else {
-					wave.entities.push_back({ENTITY_GENERAL, 0.05f});
+					int typeToAdd;
+					switch (i % 5) {
+						case 0:
+						typeToAdd = ENTITY_ADMIN; break;
+						case 1:
+						typeToAdd = ENTITY_TUNGSTEN_MAIDEN; break;
+						case 2:
+						typeToAdd = ENTITY_TROJANHORSE; break;
+						case 3:
+						typeToAdd = ENTITY_GENERAL; break;
+						case 4:
+						typeToAdd = ENTITY_TWIN; break;
+					}
+					wave.entities.push_back({typeToAdd, 0.03f});
 				}
 			}
 			return wave;
@@ -1083,11 +1130,10 @@ public:
 				if (person->stats.level == 1) {
 					person->stats.shootDelay *= 0.6f;
 				} else if (person->stats.level == 2) {
-					person->stats.shootDelay *= 0.8f;
+					person->stats.projectile.damage *= 1.3f;
 					person->stats.projectile.health = 2.f;
 				} else if (person->stats.level == 3) {
-					person->stats.projectile.damage *= 1.5f;
-					person->stats.shootDelay *= 0.9f;
+					person->stats.shootDelay *= 0.1f;
 				}
 				break;
 			case PERSON_TANK: // them
@@ -1595,6 +1641,7 @@ public:
 	Mesh fastMesh{&materials, "resources/model/entity/fast.obj"};
 	Mesh monsterMesh{&materials, "resources/model/entity/monster.obj"};
 	Mesh generalMesh{&materials, "resources/model/entity/general.obj"};
+	Mesh trojanHorseMesh{&materials, "resources/model/entity/trojanhorse.obj"};
 	Mesh ironMaidenMesh{&materials, "resources/model/entity/ironmaiden.obj"};
 	Mesh tungstenMaidenMesh{&materials, "resources/model/entity/tungstenmaiden.obj"};
 	Mesh twinMesh{&materials, "resources/model/entity/twin.obj"};
@@ -1679,6 +1726,9 @@ public:
 					break;
 				case ENTITY_GENERAL:
 					addMesh(generalMesh, entity.pos, {1.f, 1.f, 1.f}, entity.yRotation);
+					break;
+				case ENTITY_TROJANHORSE:
+					addMesh(trojanHorseMesh, entity.pos, {1.f, 1.f, 1.f}, entity.yRotation);
 					break;
 				case ENTITY_IRON_MAIDEN:
 					addMesh(ironMaidenMesh, entity.pos, {1.f, 1.f, 1.f}, entity.yRotation);

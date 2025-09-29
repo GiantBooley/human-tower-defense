@@ -1,6 +1,5 @@
 # Blender 3.5.1
 # www.blender.org
-mtllib general.mtl
 o General
 v -0.713299 1.741482 -0.713298
 v -0.713298 1.741482 0.713299
