@@ -18,6 +18,7 @@
 #include <iomanip>
 #include <sstream>
 #include <filesystem>
+#define PI 3.1415926f
 
 using namespace std;
 
@@ -125,6 +126,7 @@ class SoundDoer {
 	#define SOUND_ROLL 10
 	#define SOUND_ROBOT 11
 	#define SOUND_MUSIC_HUMAN_PASSAGES 12
+	#define SOUND_MUSIC_FROZEN 13
 	vector<SoundDoerSound> sounds = {
 		{false, 1.f, "resources/audio/brain.wav"},
 		{false, 1.f, "resources/audio/electricity.wav"},
@@ -139,6 +141,7 @@ class SoundDoer {
 		{false, 1.f, "resources/audio/roll.wav"},
 		{false, 1.f, "resources/audio/robot.wav"},
 		{true, 0.5f, "resources/audio/humanPassages.wav"},
+		{true, 1.f, "resources/audio/Frozenv1.wav"}
 	};
 	vector<SoundDoerBuffer> buffers = {};
 	SoundDoer() {
@@ -265,7 +268,7 @@ public:
 	int targetPoint = 0;
 	float health = 1.f;
 	float maxHealth = 1.f;
-	float speed = 0.03f;
+	float speed = 1.8f;
 	float u;
 	float reward;
 	float damage;
@@ -275,14 +278,14 @@ public:
 		pos = position;
 		switch (type) {
 		case ENTITY_ENTITYTEMPLATE:
-			speed = 1.f;
+			speed = 60.f;
 			u = 0.f;
 			reward = 1.f;
 			damage = 1.f;
 			size = {1.f, 1.f, 1.f};
 			break;
 		case ENTITY_NORMAL:
-			speed = 0.03f;
+			speed = 1.8f;
 			u = 0.f;
 			health = 1.f;
 			reward = 1.f;
@@ -290,7 +293,7 @@ public:
 			size = {1.f, 2.5f, 1.f};
 			break;
 		case ENTITY_FAST:
-			speed = 0.1f;
+			speed = 6.f;
 			u = 1.f;
 			health = 2.f;
 			reward = 5.f;
@@ -298,7 +301,7 @@ public:
 			size = {1.f, 1.8f, 1.f};
 			break;
 		case ENTITY_MONSTER:
-			speed = 0.2f;
+			speed = 12.f;
 			u = 2.f;
 			health = 4.f;
 			reward = 15.f;
@@ -306,7 +309,7 @@ public:
 			size = {1.f, 2.4f, 1.f};
 			break;
 		case ENTITY_ADMIN:
-			speed = 1.f;
+			speed = 60.f;
 			u = 3.f;
 			health = 5.f;
 			reward = 700.f;
@@ -314,7 +317,7 @@ public:
 			size = {1.f, 2.7f, 1.f};
 			break;
 		case ENTITY_IRON_MAIDEN:
-			speed = 0.01f;
+			speed = 0.6f;
 			u = 4.f;
 			health = 400.f;
 			reward = 50.f;
@@ -322,7 +325,7 @@ public:
 			size = {1.f, 2.f, 1.f};
 			break;
 		case ENTITY_TUNGSTEN_MAIDEN:
-			speed = 0.01f;
+			speed = 0.6f;
 			u = 5.f;
 			health = 1500.f;
 			reward = 800.f;
@@ -330,7 +333,7 @@ public:
 			size = {1.f, 3.2f, 1.f};
 			break;
 		case ENTITY_TWIN:
-			speed = 0.15f;
+			speed = 9.f;
 			u = 7.f;
 			health = 5.f;
 			reward = 5.f;
@@ -338,7 +341,7 @@ public:
 			size = {1.4f, 3.4f, 1.4f};
 			break;
 		case ENTITY_GENERAL:
-			speed = 0.03f;
+			speed = 5.f;
 			u = 8.f;
 			health = 800.f;
 			reward = 2000.f;
@@ -351,7 +354,7 @@ public:
 };
 class Camera {
 public:
-	Vec3 pos{12.5f, 12.5f, 12.5f};
+	Vec3 pos{0.f, 0.f, 0.f};
 	float fov = 1.57f;
 	Vec3 rotation{1.57f, 1.57f, 0.f};
 };
@@ -414,30 +417,30 @@ class Projectile {
 		case PROJECTILE_ARROW:
 			damage = 1.3f;
 			u = 0.f;
-			speed = 1.143f;
+			speed = 68.58f;
 			health = 1.f;
 			break;
 		case PROJECTILE_CANNONBALL:
 			damage = 3.5f;
 			u = 1.f;
-			speed = 0.6f;
+			speed = 36.f;
 			health = 5.f;
 			break;
 		case PROJECTILE_BULLET:
 			damage = 1.5f;
 			u = 2.f;
-			speed = 1.3f;
+			speed = 78.f;
 			break;
 		case PROJECTILE_MISSILE:
 			damage = 6.f;
 			u = 3.f;
-			speed = 0.5f;
+			speed = 15.f;
 			health = 5.f;
 			break;
 		case PROJECTILE_SPARK:
 			damage = 0.f;
 			u = 3.f;
-			speed = 0.01f;
+			speed = 600.f;
 			health = 10000000.f;
 			break;
 		case PROJECTILE_ELECTRICITY:
@@ -445,13 +448,13 @@ class Projectile {
 			u = 3.f;
 			health = 3.f;
 			guided = true;
-			speed = 1.5f;
+			speed = 90.f;
 			break;
 		case PROJECTILE_POTION:
 			damage = 2.f;
 			u = 3.f;
 			health = 1.f;
-			speed = 0.2f;
+			speed = 12.f;
 			break;
 		}
 	}
@@ -569,7 +572,7 @@ class Person {
 		case PERSON_TURRET:
 			return {{"default", 0.f}, {"fast", 300.f}, {"extra pierce", 500.f}, {"powerful bullets", 700.f}};
 		case PERSON_TANK:
-			return {{"default", 0.f}, {"strong missiles", 700.f}, {"guided missiles not working", 1220.f}, {"coming soon", 70032436598263495.f}}; // move around
+			return {{"default", 0.f}, {"strong missiles", 700.f}, {"guided missiles", 1220.f}, {"coming soon", 70032436598263495.f}}; // move around
 		case PERSON_GOLD_MINE:
 			return {{"default", 0.f}, {"faster minecart", 300.f}, {"electric minecart", 420.f}, {"mega fast minecart", 587.f}};
 		case PERSON_BATTERY:
@@ -729,7 +732,7 @@ class World {
 	vector<Person> people = {};
 	vector<Projectile> projectiles = {};
 	Camera camera;
-	float money = 31273712.f;
+	float money = 100.f;
 	float health = 100.f;
 	int waveNumber = 0;
 	bool tankUnlocked = false;
@@ -759,6 +762,10 @@ class World {
 		return true;
 	}
 };
+float shortestAngle(float a, float b) {
+	float diff = fmod((b - a + 3.f * PI), 2.f * PI) - PI;
+	return diff;
+}
 vector<Level> levels = {};
 class GameState {
 public:
@@ -784,10 +791,10 @@ public:
 		{"", {{ENTITY_FAST, 0.15f, 6}, {ENTITY_NORMAL, 0.2f, 6}, {ENTITY_FAST, 0.2f, 6}}},
 		{"", {{ENTITY_FAST, 0.1f, 8}, {ENTITY_NORMAL, 0.2f, 30}}},
 		{"", {{ENTITY_NORMAL, 0.1f, 5}, {ENTITY_FAST, 0.2f, 6}, {ENTITY_NORMAL, 0.1f, 5}, {ENTITY_FAST, 0.2f, 6}, {ENTITY_NORMAL, 0.1f, 5}, {ENTITY_FAST, 0.2f, 6}}},
-		{"monsters this wave", {{ENTITY_MONSTER, 1.f, 6}}},
+		{"monsters this wave", {{ENTITY_MONSTER, 0.5f, 12}}},
 		{"", {{ENTITY_FAST, 0.1f, 30}}},
 		{"", {{ENTITY_NORMAL, 0.2f, 20}, {ENTITY_MONSTER, 0.5f, 4}, {ENTITY_FAST, 0.1f, 10}}},
-		{"", {{ENTITY_FAST, 0.02f, 50}, {ENTITY_NORMAL, 0.1f, 5}}},
+		{"", {{ENTITY_FAST, 0.02f, 20}, {ENTITY_NORMAL, 0.1f, 5}}},
 		{"", {{ENTITY_NORMAL, 0.1f, 260}}},
 		{"", {{ENTITY_NORMAL, .1f, 13},{ENTITY_FAST, .1f, 13},{ENTITY_NORMAL, .1f, 13},{ENTITY_FAST, .1f, 13},{ENTITY_NORMAL, .1f, 13},{ENTITY_FAST, .1f, 13}}},
 		{"", {{ENTITY_FAST, 0.05f, 20}, {ENTITY_NORMAL, 0.05f, 20}, {ENTITY_FAST, 0.05f, 20}}},
@@ -797,7 +804,8 @@ public:
 		{"", {{ENTITY_MONSTER, 0.2f, 5}, {ENTITY_NORMAL, 0.1f, 20}}},
 		{"", {{ENTITY_IRON_MAIDEN, 2.f, 3}}},
 		{"", {{ENTITY_MONSTER, 0.5f, 10}}},
-		{"", {{ENTITY_IRON_MAIDEN, 1.5f, 7}}},
+		{"", {{ENTITY_IRON_MAIDEN, 1.5f, 5}}},
+		{"", {{ENTITY_IRON_MAIDEN, 1.f, 7},{ENTITY_MONSTER, 0.5f, 20}}},
 		{"", {{ENTITY_NORMAL, 0.02f, 120}}},
 		{"boss round", {{ENTITY_GENERAL, 2.f}}},
 		{"tank unlocked!", {{ENTITY_FAST, 0.3f, 20},{ENTITY_IRON_MAIDEN, 2.f},{ENTITY_IRON_MAIDEN, 2.f}}},
@@ -809,19 +817,19 @@ public:
 		{"tungsten maiden this round", {{ENTITY_TUNGSTEN_MAIDEN, 0.1f}}},
 		{"", {{ENTITY_NORMAL, 0.1f},{ENTITY_NORMAL, 0.1f},{ENTITY_NORMAL, 0.1f},{ENTITY_FAST, 0.1f},{ENTITY_FAST, 0.1f},{ENTITY_FAST, 0.1f},{ENTITY_MONSTER, 0.1f},{ENTITY_MONSTER, 0.1f},{ENTITY_MONSTER, 0.1f},{ENTITY_IRON_MAIDEN, 0.1f},{ENTITY_IRON_MAIDEN, 0.1f},{ENTITY_IRON_MAIDEN, 0.1f},{ENTITY_TWIN, 0.1f},{ENTITY_TWIN, 0.1f},{ENTITY_TWIN, 0.1f}}},
 		{"admin this round", {{ENTITY_ADMIN, 0.1f}}},
-		{"FINAL BOSS", {{ENTITY_NORMAL, 0.1f}}}
+		{"", {{ENTITY_TUNGSTEN_MAIDEN, 1.f, 10}, {ENTITY_NORMAL, 0.02f, 1000}}}
 	};
 	GameState() {
 		
 	}
 	
 	void tick(int width, int height) {
-		if (controls.w) world.camera.pos.z -= 0.1f * d;
-		if (controls.s) world.camera.pos.z += 0.1f * d;
-		if (controls.up) world.camera.pos.y += 0.1f * d;
-		if (controls.down) world.camera.pos.y -= 0.1f * d;
-		if (controls.left) world.camera.pos.x -= 0.1f * d;
-		if (controls.right) world.camera.pos.x += 0.1f * d;
+		if (controls.w) world.camera.pos.z -= 10.f * d;
+		if (controls.s) world.camera.pos.z += 10.f * d;
+		if (controls.up) world.camera.pos.y += 10.f * d;
+		if (controls.down) world.camera.pos.y -= 10.f * d;
+		if (controls.left) world.camera.pos.x -= 10.f * d;
+		if (controls.right) world.camera.pos.x += 10.f * d;
 		if (world.camera.pos.z < 0.5f) {
 			world.camera.pos.z = 0.5f;
 		}
@@ -831,7 +839,7 @@ public:
 		controls.worldMouse.x = controls.clipMouse.x * (world.camera.pos.z) * (float)width / (float)height + world.camera.pos.x;
 		controls.worldMouse.y = controls.clipMouse.y * (world.camera.pos.z) + world.camera.pos.y;
 
-		messageTime -= d / 60.f;
+		messageTime -= d;
 		if (gameStatus == 0) {
 			if ((controls.clipMouse.x < -0.7f && controls.previousClipMouse.x >= -0.7f) || (controls.clipMouse.x > 0.7f && controls.previousClipMouse.x <= 0.7f)) {
 				isPlacingPerson = false;
@@ -845,7 +853,7 @@ public:
 					waveCurrentlySpawning.entities.erase(waveCurrentlySpawning.entities.begin());
 				}
 			} else {
-				world.entitySpawnDelay -= d / 60.f;
+				world.entitySpawnDelay -= d;
 			};
 			if (isPlacingPerson) {
 				placingPerson.pos.x = controls.worldMouse.y;
@@ -874,7 +882,7 @@ public:
 						}
 					}
 				} else {
-					world.people.at(i).shootDelayTimer -= d / 60.f;
+					world.people.at(i).shootDelayTimer -= d;
 				}
 				if (world.people.at(i).incomeDelayTimer <= 0.f) {
 					if (!waveEnded()) {
@@ -884,7 +892,7 @@ public:
 						}
 					}
 				} else {
-					world.people.at(i).incomeDelayTimer -= d / 60.f;
+					world.people.at(i).incomeDelayTimer -= d;
 				}
 			}
 			for (int i = (int)world.projectiles.size() - 1; i >= 0; i--) {
@@ -893,7 +901,7 @@ public:
 					if (closestEntityIndex != -1) world.projectiles.at(i).velocity = vec3Subtract(world.entities[closestEntityIndex].pos, world.projectiles.at(i).pos).normalise(world.projectiles.at(i).speed);
 				}
 				world.projectiles.at(i).pos = vec3Add(world.projectiles.at(i).pos, vec3Mul(world.projectiles.at(i).velocity, d));
-				world.projectiles.at(i).age += d / 60.f;
+				world.projectiles.at(i).age += d;
 				if (world.projectiles.at(i).pos.z < 0.f || world.projectiles.at(i).pos.z > world.level.size.z || world.projectiles.at(i).pos.x < 0.f || world.projectiles.at(i).pos.x > world.level.size.x || world.projectiles.at(i).age > 5.f || (world.projectiles.at(i).type == PROJECTILE_SPARK && world.projectiles.at(i).age > 0.05f) || (world.projectiles.at(i).type == PROJECTILE_ELECTRICITY && world.projectiles.at(i).age > 30.25)) {
 					world.projectiles.erase(world.projectiles.begin() + i);
 					continue;
@@ -971,16 +979,15 @@ public:
 				}
 				float xDelta = (targetPointPos.x - world.entities.at(i).pos.x) / distanceToTargetPoint * world.entities.at(i).speed;
 				float zDelta = (targetPointPos.z - world.entities.at(i).pos.z) / distanceToTargetPoint * world.entities.at(i).speed;
+				// correct rotation
 				float rotation = atan2(zDelta, xDelta);
-				if (abs(world.entities.at(i).yRotation - rotation) > 0.1f * d) {
-					if (world.entities.at(i).yRotation < rotation) {
-						world.entities.at(i).yRotation += 0.1f * d;
-					} else if (world.entities.at(i).yRotation > rotation) {
-						world.entities.at(i).yRotation -= 0.1f * d;
-					}
-				} else {
+				float angleDelta = -shortestAngle(rotation, world.entities.at(i).yRotation);
+				if (std::abs(angleDelta) > 6.f * d) { // angle is far away
+					world.entities.at(i).yRotation += (angleDelta > 0.f ? 1.f : -1.f) * 6.f * d;
+				} else { // angle is close
 					world.entities.at(i).yRotation = rotation;
 				}
+
 				world.entities.at(i).pos.x += xDelta * d;
 				world.entities.at(i).pos.y += (targetPointPos.y - world.entities.at(i).pos.y) / distanceToTargetPoint * world.entities.at(i).speed * d;
 				world.entities.at(i).pos.z += zDelta * d;
@@ -1530,42 +1537,44 @@ public:
 		{"gui"						, guiV.shader  , guiF.shader			, "resources/texture/screen.png"},
 		{"grass"					  , solidV.shader, worldUvRandomF.shader  , "resources/texture/grass.png"},
 		{"stone"					  , solidV.shader, solidF.shader		  , "resources/texture/stone.png"},
-		{"wood"					   , solidV.shader, solidF.shader		  , "resources/texture/wood.png"}, 
-		{"skin"					   , solidV.shader, solidF.shader		  , "resources/texture/skin.png"}, 
-		{"metal"					  , solidV.shader, solidF.shader		  , "resources/texture/metal.png"}, 
-		{"gold"					   , solidV.shader, solidF.shader		  , "resources/texture/gold.png"}, 
-		{"camo"					   , solidV.shader, solidF.shader		  , "resources/texture/camo.png"}, 
-		{"rock"					   , solidV.shader, solidF.shader		  , "resources/texture/rock.png"}, 
-		{"metal_black"				, solidV.shader, solidF.shader		  , "resources/texture/metal_black.png"}, 
-		{"straw"					  , solidV.shader, solidF.shader		  , "resources/texture/straw.png"}, 
+		{"wood"					   , solidV.shader, solidF.shader		  , "resources/texture/wood.png"},
+		{"skin"					   , solidV.shader, solidF.shader		  , "resources/texture/skin.png"},
+		{"metal"					  , solidV.shader, solidF.shader		  , "resources/texture/metal.png"},
+		{"gold"					   , solidV.shader, solidF.shader		  , "resources/texture/gold.png"},
+		{"camo"					   , solidV.shader, solidF.shader		  , "resources/texture/camo.png"},
+		{"rock"					   , solidV.shader, solidF.shader		  , "resources/texture/rock.png"},
+		{"snow"					   , solidV.shader, solidF.shader		  , "resources/texture/snow.png"},
+		{"ice"					   , solidV.shader, solidF.shader		  , "resources/texture/ice.png"},
+		{"metal_black"				, solidV.shader, solidF.shader		  , "resources/texture/metal_black.png"},
+		{"straw"					  , solidV.shader, solidF.shader		  , "resources/texture/straw.png"},
 
-		{"fire"					   , solidV.shader, solidF.shader		  , "resources/texture/fire.png"}, 
+		{"fire"					   , solidV.shader, solidF.shader		  , "resources/texture/fire.png"},
 		{"electricity"				, solidV.shader, electricityF.shader	, "resources/texture/icon_battery.png"},
-		{"rock_world_uv_random_xy"	, solidV.shader, worldUvRandomXyF.shader, "resources/texture/rock.png"}, 
-		{"rock_world_uv_random_yz"	, solidV.shader, worldUvRandomYzF.shader, "resources/texture/rock.png"}, 
+		{"rock_world_uv_random_xy"	, solidV.shader, worldUvRandomXyF.shader, "resources/texture/rock.png"},
+		{"rock_world_uv_random_yz"	, solidV.shader, worldUvRandomYzF.shader, "resources/texture/rock.png"},
 
-		{"range_blue"				 , solidV.shader, rangeBlueF.shader	  , "resources/texture/brain.png"}, 
-		{"range_green"				, solidV.shader, rangeGreenF.shader	 , "resources/texture/brain.png"}, 
-		{"range_red"				  , solidV.shader, rangeRedF.shader	   , "resources/texture/brain.png"}, 
+		{"range_blue"				 , solidV.shader, rangeBlueF.shader	  , "resources/texture/brain.png"},
+		{"range_green"				, solidV.shader, rangeGreenF.shader	 , "resources/texture/brain.png"},
+		{"range_red"				  , solidV.shader, rangeRedF.shader	   , "resources/texture/brain.png"},
 
-		{"gui_container"			  , guiV.shader  , guiF.shader			, "resources/texture/gui_container.png"}, 
-		{"gui_button"				 , guiV.shader  , guiF.shader			, "resources/texture/button.png"}, 
-		{"gui_button_disabled"		, guiV.shader  , guiGrayscaleF.shader   , "resources/texture/button.png"}, 
-		{"gui_icon_archer"			, guiV.shader  , guiF.shader			, "resources/texture/icon_archer.png"}, 
-		{"gui_icon_cannon"			, guiV.shader  , guiF.shader			, "resources/texture/icon_cannon.png"}, 
-		{"gui_icon_turret"			, guiV.shader  , guiF.shader			, "resources/texture/icon_turret.png"}, 
-		{"gui_icon_tank"			  , guiV.shader  , guiF.shader			, "resources/texture/icon_tank.png"}, 
-		{"gui_icon_gold_mine"		 , guiV.shader  , guiF.shader			, "resources/texture/icon_gold_mine.png"}, 
+		{"gui_container"			  , guiV.shader  , guiF.shader			, "resources/texture/gui_container.png"},
+		{"gui_button"				 , guiV.shader  , guiF.shader			, "resources/texture/button.png"},
+		{"gui_button_disabled"		, guiV.shader  , guiGrayscaleF.shader   , "resources/texture/button.png"},
+		{"gui_icon_archer"			, guiV.shader  , guiF.shader			, "resources/texture/icon_archer.png"},
+		{"gui_icon_cannon"			, guiV.shader  , guiF.shader			, "resources/texture/icon_cannon.png"},
+		{"gui_icon_turret"			, guiV.shader  , guiF.shader			, "resources/texture/icon_turret.png"},
+		{"gui_icon_tank"			  , guiV.shader  , guiF.shader			, "resources/texture/icon_tank.png"},
+		{"gui_icon_gold_mine"		 , guiV.shader  , guiF.shader			, "resources/texture/icon_gold_mine.png"},
 		{"gui_icon_battery"		   , guiV.shader  , guiF.shader			, "resources/texture/icon_battery.png"},
-		{"gui_icon_scientist"		 , guiV.shader  , guiF.shader,			 "resources/texture/icon_scientist.png"}, 
-		{"gui_icon_robot"			 , guiV.shader  , guiF.shader,			 "resources/texture/icon_robot.png"}, 
-		{"gui_icon_scarecrow"		 , guiV.shader  , guiF.shader,			 "resources/texture/icon_scarecrow.png"}, 
-		{"gui_button_upgrade"		 , guiV.shader  , guiF.shader			, "resources/texture/button_upgrade.png"}, 
-		{"gui_button_upgrade_disabled", guiV.shader  , guiGrayscaleF.shader   , "resources/texture/button_upgrade.png"}, 
-		{"gui_play"				   , guiV.shader  , guiF.shader			, "resources/texture/button_play.png"}, 
-		{"gui_play_disabled"		  , guiV.shader  , guiGrayscaleF.shader   , "resources/texture/button_play.png"}, 
-		{"icon_level"				 , guiV.shader  , guiF.shader			, "resources/texture/icon_level.png"}, 
-		{"gui_font"				   , fontV.shader , guiF.shader			, "resources/texture/font.png"}, 
+		{"gui_icon_scientist"		 , guiV.shader  , guiF.shader,			 "resources/texture/icon_scientist.png"},
+		{"gui_icon_robot"			 , guiV.shader  , guiF.shader,			 "resources/texture/icon_robot.png"},
+		{"gui_icon_scarecrow"		 , guiV.shader  , guiF.shader,			 "resources/texture/icon_scarecrow.png"},
+		{"gui_button_upgrade"		 , guiV.shader  , guiF.shader			, "resources/texture/button_upgrade.png"},
+		{"gui_button_upgrade_disabled", guiV.shader  , guiGrayscaleF.shader   , "resources/texture/button_upgrade.png"},
+		{"gui_play"				   , guiV.shader  , guiF.shader			, "resources/texture/button_play.png"},
+		{"gui_play_disabled"		  , guiV.shader  , guiGrayscaleF.shader   , "resources/texture/button_play.png"},
+		{"icon_level"				 , guiV.shader  , guiF.shader			, "resources/texture/icon_level.png"},
+		{"gui_font"				   , fontV.shader , guiF.shader			, "resources/texture/font.png"}
 	};
 
 	vector<Vertex> vertices = {};
@@ -1745,7 +1754,7 @@ public:
 					addRect(0.75f, 0.38f, 0.2f, 0.25f, 0.08f, getMatID("gui_button"));
 					addText("sell ($" + commas(person.stats.price * 0.9f) + ")", 0.75f, 0.39f, 0.1f, 0.02f, 0.8f, 0.25f, false);
 					float dps = person.stats.projectile.damage / person.stats.shootDelay * person.stats.projectile.health;
-					//float rangeDps = dps * (3.14159f * powf(person.stats.range, 2.f));
+					//float rangeDps = dps * (PI * powf(person.stats.range, 2.f));
 					addText("dps: " + ftos(dps, 2), 0.72f, 0.32f, 0.1f, 0.02f, 0.8f, 2.f, false);
 					addText("dpspp: " + ftos(dps / person.stats.price / (person.stats.size.x * person.stats.size.z), 2), 0.72f, 0.28f, 0.1f, 0.02f, 0.8f, 2.f, false);
 					break;
@@ -1802,7 +1811,7 @@ public:
 				int y = (int)floor((float)i / 4.f);
 				addRect(-.8f + x * 0.36f, 0.6f - 0.36f * ((float)y + 1.f), 0.29f, 0.36f, 0.36f, getMatID("gui_button"));
 				addRect(-.8f + x * 0.36f + 0.06f, 0.6f - 0.36f * ((float)y + 1.f) + 0.06f, 0.28f, 0.36f - 0.12f, 0.36f - 0.12f, getMatID("icon_level"));
-				addText(levels[i].name, -.8f + x * 0.36f + 0.29f / 2.f, 0.6f - 0.36f * ((float)y + 1.f), 0.1f, 0.05f, 0.8f, 0.36f, true);
+				addText(levels[i].name, -.85f + x * 0.36f + 0.29f / 2.f, 0.6f - 0.36f * ((float)y + 1.f), 0.1f, 0.05f, 0.8f, 0.3f, true);
 			}
 		}
 		if (game->messageTime > 0.f) {
@@ -2033,7 +2042,7 @@ private:
 		vector<unsigned int> discIndices = {};
 		unsigned int end = vertices.size();
 		for (int i = 0; i < sides; i++) {
-			float d = i / (float)sides * 3.141592653589f * 2.f;
+			float d = i / (float)sides * PI * 2.f;
 			float x = sin(d) * r + pos.x;
 			float z = cos(d) * r + pos.z;
 			discVertices.push_back({x, pos.y, z, x, z});
@@ -2212,10 +2221,16 @@ static void mouse_button_callback(GLFWwindow* window, int button, int action, in
 			}
 		} else if (game.gameStatus == 1) {
 			for (int i = 0; i < (int)levels.size(); i++) {
-				if (mouseIntersectsClipRect(-.8f + i * 0.36f, 0.6f - 0.36f, 0.36f, 0.36f)) {
+				int x = i % 4;
+				int y = (int)floor((float)i / 4.f);
+				if (mouseIntersectsClipRect(-.8f + (float)x * 0.36f, 0.6f - 0.36f * (float)(y + 1), 0.36f, 0.36f)) {
 					game.world = {levels[i]};
 					soundDoer.play(soundDoer.sounds[game.world.level.music]);
+					std::cout << game.world.level.size.x << ", " << game.world.level.size.y << ", " << game.world.level.size.z << std::endl;
 					game.gameStatus = 0;
+					game.world.camera.pos.x = game.world.level.size.z / 2.f;
+					game.world.camera.pos.y = game.world.level.size.x / 2.f;
+					game.world.camera.pos.z = game.world.level.size.y * 2.f; // up
 				};
 			}
 		}
@@ -2292,14 +2307,14 @@ int main(void) {
 	GameStateRenderer renderer{&game};
 	while (!glfwWindowShouldClose(window)) {
 		long long newFrameTime = (chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch())).count();
-		frameTime = (float)(newFrameTime - lastFrameTime) / 1000.f;
+		frameTime = (float)(newFrameTime - lastFrameTime);
 		lastFrameTime = newFrameTime;
 		int width, height;
 		
 		glfwGetFramebufferSize(window, &width, &height);
 
-		game.d = 0.2f * (frameTime / (1.f / 60.f));
-		for (int i = 0; i < ((controls.fast && controls.slow) ? 50 : (controls.slow ? 1 : (controls.fast ? 20 : 5))); i++) {
+		game.d = (frameTime / 1000.f) / 5.f;
+		for (int i = 0; i < ((controls.fast && controls.slow) ? 200 : (controls.slow ? 1 : (controls.fast ? 20 : 5))); i++) {
 			game.tick(width, height);
 		}
 

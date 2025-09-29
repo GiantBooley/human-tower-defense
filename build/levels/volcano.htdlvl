@@ -1,0 +1,11 @@
+size=[50,10,50]
+path_width=0.6
+path_height=0.01
+path_points=[12.6153,0,-0.0119419];[12.5288,0,24.9543]
+path_material=fire
+path_base_width=0.61
+path_base_height=0.005
+path_base_material=metal
+ground_material=rock
+wall_material=fire
+music=9

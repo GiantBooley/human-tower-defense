@@ -1,0 +1,11 @@
+size=[25,5,25]
+path_width=0.6
+path_height=0.01
+path_points=[12.6153,0,-0.0119419];[12.5288,0,24.9543]
+path_material=stone
+path_base_width=0.61
+path_base_height=0.005
+path_base_material=wood
+ground_material=grass
+wall_material=rock
+music=9

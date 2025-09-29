@@ -1,0 +1,11 @@
+size=[10,5,10]
+path_width=0.6
+path_height=0.01
+path_points=[10.0421,0,5.65628];[0.610242,0,9.44044];[0.57221,0,0.560019];[9.58574,0,0.579035];[9.54771,0,9.49749];[0.00173378,0,-0.0294728]
+path_material=rock
+path_base_width=0.61
+path_base_height=0.005
+path_base_material=grass
+ground_material=snow
+wall_material=rock
+music=12
