@@ -741,7 +741,7 @@ class World {
 	vector<Person> people = {};
 	vector<Projectile> projectiles = {};
 	Camera camera;
-	float money = 201231231230.f;
+	float money = 150.f;
 	float health = 100.f;
 	int waveNumber = 0;
 	bool tankUnlocked = false;
